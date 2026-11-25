@@ -1,181 +1,34 @@
-# CK3-LLM
+# CK3-LLM Desktop
 
-适配 **Crusader Kings III `1.20.1.2`**（Windows + Python 3.14）的独立联机客户端与只读内存/原生沙箱接口，使大模型能够作为独立玩家 **B** 与本机真实房主 **A** 同房游玩。
+CK3-LLM 的 Rust 重写版。使用 egui/eframe 提供 Windows x64 桌面界面，目前适配 CK3 `1.20.1.2` 和游戏随附的 Nakama SDK `2.4.1`。
 
-- 开发交接与待办清单：[PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)
-- 架构与完成状态：[ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 最新实机全量验收：[docs/LIVE_VERIFICATION_REPORT.md](docs/LIVE_VERIFICATION_REPORT.md)
-- 协议与偏移研究：[PROTOCOL_FINDINGS.md](docs/PROTOCOL_FINDINGS.md)
+## 启动
 
----
+从 GitHub Actions 的 **Windows build** 下载 Windows ZIP，解压后双击 `ck3-llm.exe`。源码构建可以运行 `cargo run --locked`。
 
-## 快速启动
+- **房间连接**选择 CK3 安装目录和原版 Python 房主桥接生成的 `session_profile.json`。可检测 SDK，登录并加入 Nakama 房间，查看收包与 PDX 帧统计。
+- **模型设置**使用 Chat Completions 兼容 API，支持连接测试和导入旧版 `model_config.json` 中的地址、模型、密钥环境变量、超时和指令。
+- **模型对话**支持与配置的模型进行多轮文本对话。密钥可通过环境变量读取，也可在界面临时输入。设置可保存到 `%APPDATA%\CK3-LLM\settings.json`。
 
-先安装 Python 依赖：
+这一阶段跑通桌面管理和房间传输。CK3 游戏内握手、热加入、角色控制、世界查询、模型行动、通知和持久记忆待迁移。启动房主和导出房间配置目前继续使用 Python 版。
 
-```powershell
-py -3.14 -m pip install --target .deps -r requirements.txt
-```
+## 编译和验证
 
-默认读取 `C:\Games\Crusader Kings III` 下的游戏文件。游戏装在其他目录时，启动房主和客户端时都传入 `--game-dir "游戏安装目录"`。本地运行会生成 `captures/`，协议调查文档中引用的历史抓包是本地研究记录。
-
-### 1. 启动房主游戏 A 与本地联机服务
+在 Windows 安装 Rust x64 工具链后执行以下命令。GitHub Actions 使用 `1.100.0-x86_64-pc-windows-msvc`。
 
 ```powershell
-py local_game_bridge.py
+cargo fmt --all --check
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked
+cargo build --locked --release --target x86_64-pc-windows-msvc
+./scripts/package.ps1 -Target x86_64-pc-windows-msvc
 ```
 
-在游戏内创建本地多人房间并选角。建房后会在 `captures\local-game-<时间戳>\session_profile.json` 自动写入房间配置。
-
-### 2. 接入虚拟机客户端 B
+本地可以用安装目录里的原装 DLL 测试真实 ABI。回环测试使用合成 Nakama 房间，无需启动游戏。
 
 ```powershell
-py ck3_client.py connect-local `
-  --session-profile "captures\local-game-本次目录\session_profile.json" `
-  --live-memory-pid 当前ck3进程PID `
-  --duration 0 --quiet --stdin --ack-received-turn
+$env:CK3_GAME_DIR = 'C:\Games\Crusader Kings III'
+cargo test --locked --test nakama_dll -- --ignored
 ```
 
-可选参数：
-- `--model-config model_config.json`：接入 Chat Completions 兼容大模型服务，自动在后台执行 `game_query` / `game_action` / `wait_for_update` 循环。
-- `--username` / `--identity`：自定义玩家名与本地身份（默认 `AIObserver`）。
-- `--pause-on-military-event`：军事事件触发原生暂停（默认关闭）。
-- `--auto-accept-player-calls-from 1`：明确授权的常设决定，及时接受指定联机玩家的参战召集，按 machineid 跟随其当前角色与继承人；默认关闭。
-- `--auto-accept-ally-calls-from 32396`：同上，但绑定固定角色编号；可重复指定。
-- `--auto-disband-at-peace`：明确授权的常设决定，在最后一场战争结束后解散闲置军队；默认关闭，备战期间不会仅因尚未宣战就解散军队。
-
-### 3. 选角、准备与正常退出（stdin 逐行 JSON）
-
-热加入解码完成并输出 `game_world_loaded` 后（假设分配到 `machineid=2`，目标角色为 `65238`）：
-
-```json
-{"command":"send_game_command","request_id":"sel-1","type":"set_character_controller","header":{"attribs":14},"fields":{"machineid":2,"playable":65238,"leave_ai_on":false}}
-{"command":"send_game_command","request_id":"rdy-1","type":"set_ready_command","header":{"attribs":14},"fields":{"machineid":2,"status":true}}
-{"command":"stop"}
-```
-
-`--live-memory-pid` 模式会自动确认已接管继承人的继承状态；正常 `stop` 会在断开前复查。历史坏档若出现“因继承而暂停”，见 [继承暂停修复说明](docs/SUCCESSION_PAUSE_FIX.md)，不要把普通解除暂停或重新选角当成继承确认。
-
-### 4. 管理台与独立只读查询
-
-```powershell
-# 管理台（http://127.0.0.1:8766/）
-py control_panel.py
-
-# 独立只读查询（无需连房）
-py live_objects.py --pid 当前ck3进程PID --stdin
-
-# 也可单独启动通知筛选页
-py notification_settings.py --port 8767
-```
-
----
-
-## 常用查询与行动示例
-
-所有查询均支持 `fields`、`max_chars`、`offset`、`limit`。完整字段说明通过 `{"command":"schema"}` 获取。
-
-### 查询示例
-
-```json
-{"command":"schema"}
-{"command":"observe","changes_only":true}
-{"command":"query","kind":"players"}
-{"command":"query","kind":"character","id":65238}
-{"command":"query","kind":"declaration_preview","character":33336,"target":33882,"casus_belli":"claim_cb","titles":[607],"claimant":33336}
-{"command":"query","kind":"province","id":2214}
-{"command":"query","kind":"war_theater","id":687865856}
-{"command":"query","kind":"route","origin":2214,"target":2220,"compute":true}
-{"command":"query","kind":"unit_movement","id":1006632968}
-{"command":"query","kind":"siege","id":1}
-{"command":"query","kind":"holding_buildings","id":2214}
-{"command":"query","kind":"construction_quote","id":2214,"building":"pastures_01","index":1}
-{"command":"query","kind":"council_tasks"}
-{"command":"query","kind":"court_positions"}
-{"command":"query","kind":"factions"}
-{"command":"query","kind":"schemes"}
-{"command":"query","kind":"events"}
-{"command":"query","kind":"event","id":771}
-{"command":"query","kind":"event_options","id":771,"limit":5}
-{"command":"query","kind":"incoming_interactions"}
-{"command":"query","kind":"activity_invitations"}
-{"command":"query","kind":"decisions","search":"knight","limit":5}
-{"command":"query","kind":"decision","id":"invite_knights_decision"}
-{"command":"query","kind":"activity_type","id":"activity_feast"}
-{"command":"query","kind":"actions","search":"移动"}
-{"command":"query","kind":"action","id":"send_interaction"}
-```
-
-> `council_tasks`、`court_positions`、`factions`、`schemes`、`secrets`、`task_contracts` 在已选角时默认过滤当前控制角色；如需查全局，传 `"all": true`。
-
-### 行动指令示例
-
-带 `request_id` 的行动会返回 `action_feedback`（`submitted` → `host_echoed` / `delivery_unconfirmed`），可用 `{"command":"query","kind":"action_status","id":"..."}` 查询状态。
-
-```json
-{"command":"send_game_command","request_id":"focus-1","type":"set_character_focus","header":{"attribs":14},"fields":{"actor":65238,"target":65238,"focus_type":"stewardship_domain_focus"}}
-{"command":"send_game_command","request_id":"council-1","type":"change_council_task","header":{"attribs":14},"fields":{"character":61070,"liege":65238,"active_council_task":4782,"task_type":"task_foreign_affairs"}}
-{"command":"send_interaction","request_id":"gift-1","interaction":"gift_interaction","recipient":33592574}
-{"command":"send_interaction","request_id":"call-ally-1","interaction":"call_ally_interaction","recipient":32396,"target":{"type":"war","identity":100663342}}
-{"command":"send_game_command","request_id":"ev-1","type":"select_event_option","header":{"attribs":14},"fields":{"data":771,"option":0}}
-{"command":"send_game_command","request_id":"reply-1","type":"reply_character_interaction","header":{"attribs":14},"fields":{"character_interaction":1660944390,"accept":"accept"}}
-{"command":"send_game_command","request_id":"dec-1","type":"execute_decision","header":{"attribs":14},"fields":{"character":65238,"decision":"invite_knights_decision"}}
-{"command":"send_game_command","request_id":"join-1","type":"join_activity_command","header":{"attribs":14},"fields":{"activity":654311459,"character":65238,"travel":"yes"}}
-{"command":"set_activity_intent_command","request_id":"intent-1","intent":"reduce_stress_intent","character":65238}
-{"command":"send_game_command","request_id":"build-1","type":"add_construction","header":{"attribs":14},"fields":{"character":65238,"province":2226,"index":2,"type":605}}
-{"command":"send_game_command","request_id":"move-1","type":"move_unit","header":{"attribs":14},"fields":{"valid_for":"player","unit":1006632968,"target":2215,"unit_order_type":"set","type":"land","gathering_army":"reset"}}
-```
-
-> `send_interaction` 禁止手动传 `ai_accept`，由客户端 B 在发包前通过 `ShadowEvaluator` 自动在零注入 Unicorn 沙箱中执行 `ck3.exe` 原生 `CalcAIAccept` 求值。
-
-> 召集盟友参战必须传入 `target.type=war`，`target.identity` 使用当前 `wars` / `war` 查询的战争编号。房主回传后，查询 `incoming_interactions` 或 `war` 的参战名单核对送达和接受结果。
-
-> `declaration_preview` 在只读 Unicorn 沙箱中执行原生可发送性检查并返回游戏拒绝原因；`resources.prestige_accumulated` 是累计名望，与可花费的 `prestige` 余额分开读取。
-
-> `connect-local --auto-accept-player-marriages-from 1` 可按联机玩家身份自动接受该玩家发来的婚姻提议，跟随对方继承换角。默认关闭；只回复指定玩家发来的婚姻请求，不会回复其他 AI 或其他类型的互动。与 `--auto-accept-player-calls-from 1`、`--auto-disband-at-peace` 可同时使用。
-
----
-
-## 模型循环配置（`--model-config`）
-
-```json
-{
-  "endpoint": "http://127.0.0.1:8000/v1/chat/completions",
-  "model": "your-model-name",
-  "api_key_env": "CK3_MODEL_API_KEY",
-  "instructions": "控制当前选中的角色，与房主共同游玩。按需查询信息并自行决定具体行动。",
-  "request_options": {"max_completion_tokens": 4096}
-}
-```
-
----
-
-## 回归与原生验证
-
-原生验证需要本机安装受支持版本的 CK3。部分测试会在缺少本地抓包时跳过。
-
-```powershell
-# 全量离线单元测试
-py -m unittest discover -q
-
-# 本地回环联机演练（使用真实 nakama-cpp.dll）
-py ck3_client.py demo
-
-# 97 种原生命令字节级 Unicorn 比对
-py -m ck3_llm.tools.verify_jomini_native --cases 16
-```
-
-## 目录结构
-
-| 目录 | 内容 |
-| --- | --- |
-| [`ck3_llm/protocol/`](ck3_llm/protocol/) | 联机编解码、会话、本地后端和快照传输 |
-| [`ck3_llm/engine/`](ck3_llm/engine/) | 本地游戏启动、进程读取和原生沙箱 |
-| [`ck3_llm/world/`](ck3_llm/world/) | 世界状态、快照、语义查询和战区 |
-| [`ck3_llm/gameplay/`](ck3_llm/gameplay/) | 游戏命令、规则目录和通知 |
-| [`ck3_llm/model/`](ck3_llm/model/) | 模型循环、对话、记忆和监听 |
-| [`ck3_llm/web/`](ck3_llm/web/) | 管理台、通知筛选页和网页资源 |
-| [`ck3_llm/tools/`](ck3_llm/tools/) | 验证工具、令牌表提取和存档修复 |
-| [`tests/`](tests/) · [`docs/`](docs/) | 回归测试与项目文档 |
-
-根目录的 Python 脚本是常用启动入口。运行生成的 `captures/`、模型配置、通知偏好、对话和记忆都在项目根目录读取或写入。
+推送 `rust-rewrite` 分支或打开拉取请求会运行 Windows 构建。打 `v*` 版本标签会通过 GitHub Releases 发布 ZIP。应用在运行时从用户选择的游戏安装目录加载 Nakama DLL。
