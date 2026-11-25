@@ -5,7 +5,7 @@ use ck3_llm::model::{self, Message, Reply, Role};
 use ck3_llm::settings::{ModelSettings, read_json};
 use eframe::egui::{Button, DragValue, RichText, ScrollArea, TextEdit, Ui};
 
-use super::style;
+use super::{memory::MemoryPage, style};
 
 #[derive(Clone, Copy)]
 enum Operation {
@@ -139,7 +139,7 @@ impl ModelPage {
         });
     }
 
-    pub fn show_chat(&mut self, ui: &mut Ui, settings: &ModelSettings) {
+    pub fn show_chat(&mut self, ui: &mut Ui, settings: &ModelSettings, memory: &MemoryPage) {
         style::card(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.label(
@@ -199,12 +199,12 @@ impl ModelPage {
                         content: self.draft.trim().to_owned(),
                     });
                     self.draft.clear();
-                    self.submit(Operation::Chat, settings);
+                    self.submit_chat(settings, memory);
                 }
                 if self.chat_error.is_some()
                     && ui.add_enabled(!self.busy(), Button::new("重试")).clicked()
                 {
-                    self.submit(Operation::Chat, settings);
+                    self.submit_chat(settings, memory);
                 }
                 if self
                     .pending
@@ -219,6 +219,18 @@ impl ModelPage {
                 ui.label(RichText::new(error).color(style::ERROR));
             }
         });
+    }
+
+    fn submit_chat(&mut self, settings: &ModelSettings, memory: &MemoryPage) {
+        let mut settings = settings.clone();
+        let recalled = memory.prompt();
+        if !recalled.is_empty() {
+            settings
+                .instructions
+                .push_str("\n\n以下是已启用的用户记忆。\n");
+            settings.instructions.push_str(&recalled);
+        }
+        self.submit(Operation::Chat, &settings);
     }
 
     fn submit(&mut self, operation: Operation, settings: &ModelSettings) {

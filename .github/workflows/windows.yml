@@ -22,9 +22,10 @@ jobs:
       - name: Prepare Frida 17.26.2
         run: |
           $devkit = ./scripts/prepare-frida.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'ck3-frida')
+          $clangPath = $devkit.Replace('\', '/')
           "CK3_FRIDA_DEVKIT=$devkit" >> $env:GITHUB_ENV
-          "BINDGEN_EXTRA_CLANG_ARGS=-I$devkit" >> $env:GITHUB_ENV
-          "RUSTFLAGS=-C target-feature=+crt-static -Lnative=$devkit" >> $env:GITHUB_ENV
+          "BINDGEN_EXTRA_CLANG_ARGS=-I`"$clangPath`"" >> $env:GITHUB_ENV
+          "RUSTFLAGS=-C target-feature=+crt-static -Lnative=$clangPath" >> $env:GITHUB_ENV
           $clang = Join-Path $env:ProgramFiles 'LLVM/bin'
           if (Test-Path -LiteralPath (Join-Path $clang 'libclang.dll')) { "LIBCLANG_PATH=$clang" >> $env:GITHUB_ENV }
       - name: Check formatting

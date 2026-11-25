@@ -1,5 +1,6 @@
 mod connection;
 mod host;
+mod memory;
 mod model;
 mod style;
 
@@ -16,6 +17,7 @@ enum Page {
     Connection,
     Model,
     Chat,
+    Memory,
 }
 
 impl Page {
@@ -25,6 +27,7 @@ impl Page {
             Self::Connection => "房间连接",
             Self::Model => "模型设置",
             Self::Chat => "模型对话",
+            Self::Memory => "记忆",
         }
     }
 }
@@ -37,6 +40,7 @@ pub struct Desktop {
     host: host::HostPage,
     connection: connection::ConnectionPage,
     model: model::ModelPage,
+    memory: memory::MemoryPage,
 }
 
 impl Desktop {
@@ -50,6 +54,7 @@ impl Desktop {
             host: host::HostPage::default(),
             connection: connection::ConnectionPage::default(),
             model: model::ModelPage::default(),
+            memory: memory::MemoryPage::open(),
         };
         if let Err(error) = app.load_settings() {
             app.settings_feedback = Some((false, format!("{error:#}")));
@@ -89,7 +94,13 @@ impl Desktop {
             .show(context, |ui| {
                 ui.label(RichText::new("CK3-LLM").size(23.0).strong());
                 ui.add_space(25.0);
-                for page in [Page::Host, Page::Connection, Page::Model, Page::Chat] {
+                for page in [
+                    Page::Host,
+                    Page::Connection,
+                    Page::Model,
+                    Page::Chat,
+                    Page::Memory,
+                ] {
                     let selected = self.page == page;
                     let text = RichText::new(page.name()).size(15.0).color(if selected {
                         style::BLUE_INK
@@ -177,7 +188,10 @@ impl eframe::App for Desktop {
                                 self.connection.show(ui, &mut self.settings.connection)
                             }
                             Page::Model => self.model.show_settings(ui, &mut self.settings.model),
-                            Page::Chat => self.model.show_chat(ui, &self.settings.model),
+                            Page::Chat => {
+                                self.model.show_chat(ui, &self.settings.model, &self.memory)
+                            }
+                            Page::Memory => self.memory.show(ui),
                         }
                     });
             });

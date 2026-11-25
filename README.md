@@ -10,10 +10,11 @@ CK3-LLM 的 Rust 桌面版。使用 egui/eframe，当前适配 Windows x64 上�
 - **房间连接**检测 SDK，登录并加入 Nakama 房间，查看收包与 PDX 帧统计。也可导入已有 `session_profile.json`。
 - **模型设置**使用 Chat Completions 兼容 API，支持连接测试和导入旧版 `model_config.json` 中的地址、模型、密钥环境变量、超时和指令。
 - **模型对话**支持与配置的模型进行多轮文本对话。密钥可通过环境变量读取，也可在界面临时输入。设置可保存到 `%APPDATA%\CK3-LLM\settings.json`。
+- **记忆**支持导入旧版 `llm_memory.json`、编辑战役记忆和跨局经验、保存和选择用于对话的条目。
 
 房主捕获文件保存在 `%APPDATA%\CK3-LLM\captures`。停止本地服务会断开房间并恢复原菜单文件，游戏可从 CK3 窗口正常退出。
 
-当前的连接视图覆盖 Nakama 房间层。CK3 游戏内握手、热加入、角色控制、世界查询、模型行动、通知和持久记忆待迁移。
+当前的连接视图覆盖 Nakama 房间层。CK3 游戏内握手、热加入、角色控制、世界查询、模型行动和游戏通知待迁移。
 
 ## 编译和验证
 
@@ -22,7 +23,8 @@ Windows 完整构建使用 Rust `1.100.0-x86_64-pc-windows-msvc`、可用的 lib
 ```powershell
 $devkit = ./scripts/prepare-frida.ps1 -Directory (Join-Path $env:TEMP 'ck3-frida')
 $env:CK3_FRIDA_DEVKIT = $devkit
-$env:BINDGEN_EXTRA_CLANG_ARGS = "-I`"$devkit`""
+$clangPath = $devkit.Replace('\', '/')
+$env:BINDGEN_EXTRA_CLANG_ARGS = "-I`"$clangPath`""
 $env:CARGO_ENCODED_RUSTFLAGS = (@('-C', 'target-feature=+crt-static', "-Lnative=$devkit") -join [char]31)
 cargo test --locked --features host-bridge --target x86_64-pc-windows-msvc
 cargo build --locked --features host-bridge --release --target x86_64-pc-windows-msvc
