@@ -59,6 +59,10 @@ pub struct WorldPage {
 }
 
 impl WorldPage {
+    pub fn active(&self) -> Option<&Arc<World>> {
+        self.opened.as_ref().map(|(_, world)| world)
+    }
+
     pub fn open(&mut self, file: PathBuf) {
         if self.busy() {
             self.error = Some("世界快照正在读取".into());

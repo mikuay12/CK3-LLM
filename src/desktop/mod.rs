@@ -2,6 +2,7 @@ mod connection;
 mod host;
 mod memory;
 mod model;
+mod notifications;
 mod style;
 mod world;
 
@@ -17,6 +18,7 @@ enum Page {
     Host,
     Connection,
     World,
+    Notifications,
     Model,
     Chat,
     Memory,
@@ -28,6 +30,7 @@ impl Page {
             Self::Host => "本地房主",
             Self::Connection => "房间连接",
             Self::World => "世界快照",
+            Self::Notifications => "通知",
             Self::Model => "模型设置",
             Self::Chat => "模型对话",
             Self::Memory => "记忆",
@@ -43,6 +46,7 @@ pub struct Desktop {
     host: host::HostPage,
     connection: connection::ConnectionPage,
     world: world::WorldPage,
+    notifications: notifications::NotificationsPage,
     model: model::ModelPage,
     memory: memory::MemoryPage,
 }
@@ -58,6 +62,7 @@ impl Desktop {
             host: host::HostPage::default(),
             connection: connection::ConnectionPage::default(),
             world: world::WorldPage::default(),
+            notifications: notifications::NotificationsPage::open(),
             model: model::ModelPage::default(),
             memory: memory::MemoryPage::open(),
         };
@@ -103,6 +108,7 @@ impl Desktop {
                     Page::Host,
                     Page::Connection,
                     Page::World,
+                    Page::Notifications,
                     Page::Model,
                     Page::Chat,
                     Page::Memory,
@@ -144,9 +150,11 @@ impl Desktop {
 impl eframe::App for Desktop {
     fn update(&mut self, context: &egui::Context, _: &mut eframe::Frame) {
         if let Some(profile) = self.host.poll() {
+            self.notifications
+                .record("room_profile", "本地房间配置已生成");
             self.settings.connection.profile_path = profile.to_string_lossy().into_owned();
         }
-        self.connection.poll();
+        self.connection.poll(&mut self.notifications);
         self.model.poll();
         self.world.poll();
         if self.host.busy() || self.connection.busy() || self.model.busy() || self.world.busy() {
@@ -200,10 +208,14 @@ impl eframe::App for Desktop {
                                 }
                             }
                             Page::World => self.world.show(ui),
+                            Page::Notifications => self.notifications.show(ui),
                             Page::Model => self.model.show_settings(ui, &mut self.settings.model),
-                            Page::Chat => {
-                                self.model.show_chat(ui, &self.settings.model, &self.memory)
-                            }
+                            Page::Chat => self.model.show_chat(
+                                ui,
+                                &self.settings.model,
+                                &self.memory,
+                                self.world.active(),
+                            ),
                             Page::Memory => self.memory.show(ui),
                         }
                     });

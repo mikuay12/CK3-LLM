@@ -9,7 +9,7 @@ use ck3_llm::session::{
 use ck3_llm::settings::ConnectionSettings;
 use eframe::egui::{Button, RichText, TextEdit, Ui};
 
-use super::style;
+use super::{notifications::NotificationsPage, style};
 
 #[derive(Default, PartialEq, Eq)]
 enum Phase {
@@ -57,7 +57,7 @@ impl ConnectionPage {
         self.task.is_some() || self.probe.is_some()
     }
 
-    pub fn poll(&mut self) {
+    pub fn poll(&mut self, notifications: &mut NotificationsPage) {
         if let Some(probe) = &self.probe {
             let result = match probe.try_recv() {
                 Ok(result) => Some(result),
@@ -88,6 +88,7 @@ impl ConnectionPage {
                 Update::Joining if self.phase != Phase::Stopping => self.phase = Phase::Joining,
                 Update::Joined { match_id, user_id } if self.phase != Phase::Stopping => {
                     self.phase = Phase::Joined;
+                    notifications.record("room_joined", format!("已加入本地房间 {match_id}"));
                     self.room = Some((match_id, user_id));
                 }
                 Update::Traffic(traffic) => self.traffic = traffic,
@@ -96,17 +97,27 @@ impl ConnectionPage {
                 Update::GameTransfer { received, total } => self.transfer = Some((received, total)),
                 Update::GameSnapshot { path, machine } => {
                     self.game_machine = Some(machine);
+                    notifications.record(
+                        "snapshot_loaded",
+                        format!("玩家 {machine} 的热加入快照已接收并验证"),
+                    );
                     self.snapshot = Some(path);
                 }
                 Update::ActionSubmitted(message) => self.feedback = Some((true, message)),
-                Update::Notice(message) => self.feedback = Some((false, message)),
+                Update::Notice(message) => {
+                    notifications.record("session_notice", &message);
+                    self.feedback = Some((false, message));
+                }
                 Update::Ended(result) => {
                     self.task = None;
                     self.room = None;
                     self.game_machine = None;
                     match result {
                         Ok(()) => self.phase = Phase::Idle,
-                        Err(error) => self.set_error(error),
+                        Err(error) => {
+                            notifications.record("connection_error", format!("{error:#}"));
+                            self.set_error(error);
+                        }
                     }
                 }
                 _ => {}

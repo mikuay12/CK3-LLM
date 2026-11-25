@@ -1,8 +1,10 @@
+use std::sync::Arc;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
 
 use ck3_llm::model::{self, Message, Reply, Role};
 use ck3_llm::settings::{ModelSettings, read_json};
+use ck3_llm::world::World;
 use eframe::egui::{Button, DragValue, RichText, ScrollArea, TextEdit, Ui};
 
 use super::{memory::MemoryPage, style};
@@ -26,6 +28,7 @@ pub struct ModelPage {
     pending: Option<Request>,
     settings_feedback: Option<(bool, String)>,
     chat_error: Option<String>,
+    use_world: bool,
 }
 
 impl ModelPage {
@@ -107,7 +110,7 @@ impl ModelPage {
                     .add_enabled(!self.busy(), style::primary("测试连接"))
                     .clicked()
                 {
-                    self.submit(Operation::Test, settings);
+                    self.submit(Operation::Test, settings, None);
                 }
                 if ui
                     .add_enabled(!self.busy(), Button::new("导入旧版模型配置"))
@@ -139,7 +142,13 @@ impl ModelPage {
         });
     }
 
-    pub fn show_chat(&mut self, ui: &mut Ui, settings: &ModelSettings, memory: &MemoryPage) {
+    pub fn show_chat(
+        &mut self,
+        ui: &mut Ui,
+        settings: &ModelSettings,
+        memory: &MemoryPage,
+        world: Option<&Arc<World>>,
+    ) {
         style::card(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.label(
@@ -187,6 +196,9 @@ impl ModelPage {
                     .hint_text("输入消息"),
             );
             ui.horizontal_wrapped(|ui| {
+                ui.add_enabled_ui(world.is_some() && !self.busy(), |ui| {
+                    ui.checkbox(&mut self.use_world, "允许模型查询已打开的快照");
+                });
                 if ui
                     .add_enabled(
                         !self.busy() && !self.draft.trim().is_empty(),
@@ -199,12 +211,12 @@ impl ModelPage {
                         content: self.draft.trim().to_owned(),
                     });
                     self.draft.clear();
-                    self.submit_chat(settings, memory);
+                    self.submit_chat(settings, memory, world);
                 }
                 if self.chat_error.is_some()
                     && ui.add_enabled(!self.busy(), Button::new("重试")).clicked()
                 {
-                    self.submit_chat(settings, memory);
+                    self.submit_chat(settings, memory, world);
                 }
                 if self
                     .pending
@@ -221,7 +233,12 @@ impl ModelPage {
         });
     }
 
-    fn submit_chat(&mut self, settings: &ModelSettings, memory: &MemoryPage) {
+    fn submit_chat(
+        &mut self,
+        settings: &ModelSettings,
+        memory: &MemoryPage,
+        world: Option<&Arc<World>>,
+    ) {
         let mut settings = settings.clone();
         let recalled = memory.prompt();
         if !recalled.is_empty() {
@@ -230,10 +247,16 @@ impl ModelPage {
                 .push_str("\n\n以下是已启用的用户记忆。\n");
             settings.instructions.push_str(&recalled);
         }
-        self.submit(Operation::Chat, &settings);
+        let world = if self.use_world { world.cloned() } else { None };
+        self.submit(Operation::Chat, &settings, world);
     }
 
-    fn submit(&mut self, operation: Operation, settings: &ModelSettings) {
+    fn submit(
+        &mut self,
+        operation: Operation,
+        settings: &ModelSettings,
+        world: Option<Arc<World>>,
+    ) {
         match operation {
             Operation::Test => self.settings_feedback = None,
             Operation::Chat => self.chat_error = None,
@@ -247,7 +270,9 @@ impl ModelPage {
             .spawn(move || {
                 let result = match operation {
                     Operation::Test => model::test_connection(&settings, &key),
-                    Operation::Chat => model::chat(&settings, &key, &history),
+                    Operation::Chat => {
+                        model::chat_in_workspace(&settings, &key, &history, world.as_deref())
+                    }
                 };
                 let _ = send.send(result);
             });

@@ -5,8 +5,10 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, ensure};
 use reqwest::{Url, blocking::Client};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 
 use crate::settings::ModelSettings;
+use crate::world::World;
 
 #[derive(Clone, Copy, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -41,6 +43,22 @@ struct Choice {
 #[derive(Deserialize)]
 struct AssistantMessage {
     content: Option<String>,
+    #[serde(default)]
+    tool_calls: Vec<ToolCall>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct ToolCall {
+    id: String,
+    #[serde(rename = "type")]
+    kind: String,
+    function: FunctionCall,
+}
+
+#[derive(Deserialize, Serialize)]
+struct FunctionCall {
+    name: String,
+    arguments: String,
 }
 
 pub fn test_connection(settings: &ModelSettings, key: &str) -> Result<Reply> {
@@ -58,10 +76,20 @@ pub fn test_connection(settings: &ModelSettings, key: &str) -> Result<Reply> {
             },
         ],
         Some(Duration::from_secs(20)),
+        None,
     )
 }
 
 pub fn chat(settings: &ModelSettings, key: &str, messages: &[Message]) -> Result<Reply> {
+    chat_in_workspace(settings, key, messages, None)
+}
+
+pub fn chat_in_workspace(
+    settings: &ModelSettings,
+    key: &str,
+    messages: &[Message],
+    world: Option<&World>,
+) -> Result<Reply> {
     let mut context = Vec::with_capacity(messages.len() + 1);
     if !settings.instructions.trim().is_empty() {
         context.push(Message {
@@ -70,7 +98,7 @@ pub fn chat(settings: &ModelSettings, key: &str, messages: &[Message]) -> Result
         });
     }
     context.extend_from_slice(messages);
-    complete(settings, key, &context, None)
+    complete(settings, key, &context, None, world)
 }
 
 fn complete(
@@ -78,6 +106,7 @@ fn complete(
     key: &str,
     messages: &[Message],
     max_timeout: Option<Duration>,
+    world: Option<&World>,
 ) -> Result<Reply> {
     let endpoint = Url::parse(settings.endpoint.trim()).context("模型 API 地址无效")?;
     ensure!(
@@ -106,15 +135,72 @@ fn complete(
         .timeout(timeout)
         .build()
         .context("创建模型 HTTP 客户端")?;
-    let mut request = client.post(endpoint).json(&serde_json::json!({
+    let mut body = json!({
         "model": model,
         "messages": messages,
         "stream": false,
-    }));
-    if !key.trim().is_empty() {
-        request = request.bearer_auth(key.trim());
+    });
+    if world.is_some() {
+        body["tools"] = json!([{
+            "type": "function",
+            "function": {
+                "name": "game_query",
+                "description": "Query the CK3 snapshot opened by the user. Use summary for world metadata or query a character, landed title, or province by ID. A landed title accepts its script key.",
+                "parameters": { "type": "object", "properties": {
+                    "kind": { "type": "string", "enum": ["summary", "character", "title", "province"] },
+                    "id": { "type": ["string", "integer"] }
+                }, "required": ["kind"], "additionalProperties": false }
+            }
+        }]);
     }
     let started = Instant::now();
+    for round in 0..=6 {
+        let remaining = timeout
+            .checked_sub(started.elapsed())
+            .filter(|value| !value.is_zero())
+            .context("模型请求超时")?;
+        let mut request = client.post(endpoint.clone()).timeout(remaining).json(&body);
+        if !key.trim().is_empty() {
+            request = request.bearer_auth(key.trim());
+        }
+        let (message, status) = request_message(request)?;
+        if message.tool_calls.is_empty() {
+            let content = message
+                .content
+                .filter(|content| !content.trim().is_empty())
+                .context("模型回复中没有文本")?;
+            return Ok(Reply {
+                content,
+                status,
+                elapsed: started.elapsed(),
+            });
+        }
+        let world = world.context("当前对话未启用快照查询")?;
+        ensure!(
+            round < 6 && message.tool_calls.len() <= 8,
+            "模型查询次数达到本轮上限"
+        );
+        let messages = body["messages"]
+            .as_array_mut()
+            .expect("serialized message array");
+        messages.push(json!({"role": "assistant", "content": message.content, "tool_calls": message.tool_calls}));
+        for tool in &message.tool_calls {
+            let result =
+                query(world, tool).unwrap_or_else(|error| json!({"error": format!("{error:#}")}));
+            let content = result.to_string();
+            let excerpt: String = content.chars().take(6000).collect();
+            let text = if excerpt.len() < content.len() {
+                json!({"truncated": true, "excerpt": excerpt}).to_string()
+            } else {
+                content
+            };
+            messages.push(json!({"role": "tool", "tool_call_id": tool.id, "content": text}));
+        }
+    }
+    unreachable!("the last request cannot start another tool round")
+}
+
+fn request_message(request: reqwest::blocking::RequestBuilder) -> Result<(AssistantMessage, u16)> {
     let response = request
         .send()
         .map_err(reqwest::Error::without_url)
@@ -129,16 +215,36 @@ fn complete(
         .context("读取模型回复失败")?;
     ensure!(body.len() as u64 <= RESPONSE_LIMIT, "模型回复超过 4 MiB");
     let parsed: ChatResponse = serde_json::from_slice(&body).context("模型回复格式无效")?;
-    let content = parsed
+    let message = parsed
         .choices
         .into_iter()
         .next()
-        .and_then(|choice| choice.message.content)
-        .filter(|content| !content.trim().is_empty())
-        .context("模型回复中没有文本")?;
-    Ok(Reply {
-        content,
-        status: status.as_u16(),
-        elapsed: started.elapsed(),
-    })
+        .context("模型回复没有候选消息")?
+        .message;
+    Ok((message, status.as_u16()))
+}
+
+fn query(world: &World, call: &ToolCall) -> Result<Value> {
+    ensure!(
+        call.kind == "function" && call.function.name == "game_query",
+        "不支持的模型工具"
+    );
+    let arguments: Value =
+        serde_json::from_str(&call.function.arguments).context("查询参数无法解析")?;
+    let kind = arguments["kind"].as_str().context("缺少查询类别")?;
+    if kind == "summary" {
+        return world.summary();
+    }
+    let id = &arguments["id"];
+    let id = id
+        .as_str()
+        .map(str::to_owned)
+        .or_else(|| id.as_u64().map(|id| id.to_string()))
+        .context("查询需要有效 ID")?;
+    match kind {
+        "character" => world.character(id.parse().context("人物 ID 需要是整数")?),
+        "province" => world.province(id.parse().context("省份 ID 需要是整数")?),
+        "title" => world.title(&id),
+        _ => anyhow::bail!("未知查询类别"),
+    }
 }
