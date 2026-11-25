@@ -57,7 +57,7 @@ played_character={
 工具 `repair_succession_save.py` 仅接受明文 SAV 存档，要求按名字和角色唯一匹配、玩家已离线、待确认继承人一致。与原生命令效果对应，仅删除该记录的 `has_open_succession` 和 `succession_data`，拒绝原地覆盖或覆盖已有输出。旁边的 `.ck3.repair.json` 保存两份 SHA-256 和精确删除字节范围。本次只删除 989 字节，独立校验确认其余字节与原件完全相同。
 
 ```powershell
-py repair_succession_save.py "原存档.ck3" --output "新的修复副本.ck3" --player-name Antigravity --character 38035
+py -m ck3_llm.tools.repair_succession_save "原存档.ck3" --output "新的修复副本.ck3" --player-name Antigravity --character 38035
 ```
 
 ## 验证边界

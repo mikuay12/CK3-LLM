@@ -2,10 +2,10 @@
 
 适配 **Crusader Kings III `1.20.1.2`**（Windows + Python 3.14）的独立联机客户端与只读内存/原生沙箱接口，使大模型能够作为独立玩家 **B** 与本机真实房主 **A** 同房游玩。
 
-- 开发交接与待办清单：[PROJECT_HANDOFF.md](PROJECT_HANDOFF.md)
-- 架构与完成状态：[ARCHITECTURE.md](ARCHITECTURE.md)
+- 开发交接与待办清单：[PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)
+- 架构与完成状态：[ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - 最新实机全量验收：[docs/LIVE_VERIFICATION_REPORT.md](docs/LIVE_VERIFICATION_REPORT.md)
-- 协议与偏移研究：[PROTOCOL_FINDINGS.md](PROTOCOL_FINDINGS.md)
+- 协议与偏移研究：[PROTOCOL_FINDINGS.md](docs/PROTOCOL_FINDINGS.md)
 
 ---
 
@@ -56,14 +56,17 @@ py ck3_client.py connect-local `
 
 `--live-memory-pid` 模式会自动确认已接管继承人的继承状态；正常 `stop` 会在断开前复查。历史坏档若出现“因继承而暂停”，见 [继承暂停修复说明](docs/SUCCESSION_PAUSE_FIX.md)，不要把普通解除暂停或重新选角当成继承确认。
 
-### 4. 独立只读查询与通知勾选页
+### 4. 管理台与独立只读查询
 
 ```powershell
+# 管理台（http://127.0.0.1:8766/）
+py control_panel.py
+
 # 独立只读查询（无需连房）
 py live_objects.py --pid 当前ck3进程PID --stdin
 
-# 通知筛选网页（http://127.0.0.1:8766/，勾选表示关闭，写入 notification_policy.json 热重载）
-py notification_settings.py
+# 也可单独启动通知筛选页
+py notification_settings.py --port 8767
 ```
 
 ---
@@ -159,5 +162,20 @@ py -m unittest discover -q
 py ck3_client.py demo
 
 # 97 种原生命令字节级 Unicorn 比对
-py verify_jomini_native.py --cases 16
+py -m ck3_llm.tools.verify_jomini_native --cases 16
 ```
+
+## 目录结构
+
+| 目录 | 内容 |
+| --- | --- |
+| [`ck3_llm/protocol/`](ck3_llm/protocol/) | 联机编解码、会话、本地后端和快照传输 |
+| [`ck3_llm/engine/`](ck3_llm/engine/) | 本地游戏启动、进程读取和原生沙箱 |
+| [`ck3_llm/world/`](ck3_llm/world/) | 世界状态、快照、语义查询和战区 |
+| [`ck3_llm/gameplay/`](ck3_llm/gameplay/) | 游戏命令、规则目录和通知 |
+| [`ck3_llm/model/`](ck3_llm/model/) | 模型循环、对话、记忆和监听 |
+| [`ck3_llm/web/`](ck3_llm/web/) | 管理台、通知筛选页和网页资源 |
+| [`ck3_llm/tools/`](ck3_llm/tools/) | 验证工具、令牌表提取和存档修复 |
+| [`tests/`](tests/) · [`docs/`](docs/) | 回归测试与项目文档 |
+
+根目录的 Python 脚本是常用启动入口。运行生成的 `captures/`、模型配置、通知偏好、对话和记忆都在项目根目录读取或写入。
