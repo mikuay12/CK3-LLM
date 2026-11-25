@@ -1,13 +1,11 @@
-use std::ffi::CString;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
-use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
-use frida::{Device, DeviceManager, Frida, Message, ScriptHandler, ScriptOption, SpawnOptions};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -15,13 +13,13 @@ use uuid::Uuid;
 use super::HostUpdate;
 use super::auth::SERVER_KEY;
 use super::backend::LocalBackend;
+use super::frida_runtime::{Device, Session};
 use super::frontend::Frontend;
 use crate::session::{CK3_BUILD, EXE_SHA256};
 use crate::settings::{HostSettings, Settings, write_json};
 
 const FRIDA_VERSION: &str = "17.26.2";
 const ADAPTER: &str = include_str!("bridge.js");
-static FRIDA: OnceLock<Frida> = OnceLock::new();
 static HOST_SLOT: Mutex<()> = Mutex::new(());
 
 pub fn run(
@@ -45,21 +43,11 @@ pub fn run(
         return Ok(());
     }
 
-    let frida = FRIDA.get_or_init(|| unsafe { Frida::obtain() });
+    let device = Device::local(FRIDA_VERSION)?;
     ensure!(
-        Frida::version() == FRIDA_VERSION,
-        "Frida 版本不匹配，需要 {FRIDA_VERSION}"
+        !device.ck3_running()?,
+        "已有 CK3 在运行，请在游戏中退出后再启动本地房主"
     );
-    let manager = DeviceManager::obtain(frida);
-    let list = manager
-        .get_local_device()?
-        .enumerate_processes()
-        .iter()
-        .any(|process| {
-            let name = process.get_name();
-            name.eq_ignore_ascii_case("ck3.exe") || name.eq_ignore_ascii_case("ck3")
-        });
-    ensure!(!list, "已有 CK3 在运行，请在游戏中退出后再启动本地房主");
 
     let settings_file = Settings::path()?;
     let capture = settings_file
@@ -74,7 +62,7 @@ pub fn run(
     })?;
     let mut frontend = Frontend::apply(directory.join("game/gui/frontend_main.gui"), &capture)?;
     let result = run_game(
-        &manager,
+        &device,
         &executable,
         username,
         &backend,
@@ -82,6 +70,9 @@ pub fn run(
         stop,
         updates,
     );
+    if let Err(error) = &result {
+        backend.record("bridge_error", json!({"message": format!("{error:#}")}));
+    }
     let restored = frontend.restore();
     if restored.is_ok() {
         backend.record("frontend_restored", json!({}));
@@ -115,7 +106,7 @@ fn verify_executable(path: &Path, stop: &Receiver<()>) -> Result<()> {
 }
 
 fn run_game(
-    manager: &DeviceManager<'_>,
+    device: &Device,
     executable: &Path,
     username: &str,
     backend: &LocalBackend,
@@ -133,19 +124,20 @@ fn run_game(
         .context("无法读取 CK3 工作目录")?;
     let port = format!("-nakama_port={}", backend.port());
     let key = format!("-nakama_key={SERVER_KEY}");
-    let options = SpawnOptions::new().cwd(CString::new(cwd)?).argv([
+    let arguments = [
         game,
         &key,
         "-nakama_host=127.0.0.1",
         &port,
         "-nakama_ssl=0",
         "-debug_mode",
-    ]);
-    let mut device = manager.get_local_device()?;
-    let pid = device.spawn(game, &options).context("启动 CK3 房主进程")?;
+    ];
+    let pid = device
+        .spawn(game, cwd, &arguments)
+        .context("启动 CK3 房主进程")?;
     let mut resumed = false;
     let result = attach(
-        &device,
+        device,
         pid,
         username,
         backend,
@@ -156,32 +148,14 @@ fn run_game(
     );
     if !resumed {
         // This PID was created suspended by this launch attempt and has no game state.
-        let _ = manager
-            .get_local_device()
-            .and_then(|mut local| local.kill(pid));
+        device.cancel_spawn(pid);
     }
     result
 }
 
-struct AdapterMessages(Sender<Result<Value>>);
-
-impl ScriptHandler for AdapterMessages {
-    fn on_message(&mut self, message: Message, _: Option<Vec<u8>>) {
-        let event = match message {
-            Message::Send(message) if message.payload.r#type == "ck3:host" => {
-                Ok(message.payload.returns)
-            }
-            Message::Error(error) => Err(anyhow!("{}", error.description)),
-            Message::Other(value) => Err(anyhow!("房主脚本消息格式错误 {value}")),
-            _ => return,
-        };
-        let _ = self.0.send(event);
-    }
-}
-
 #[allow(clippy::too_many_arguments)]
 fn attach(
-    device: &Device<'_>,
+    device: &Device,
     pid: u32,
     username: &str,
     backend: &LocalBackend,
@@ -194,12 +168,10 @@ fn attach(
     let config = json!({"host": "127.0.0.1", "port": backend.port(), "username": username,
         "exe_sha256": EXE_SHA256});
     let source = format!("const localHostConfig = {config};\n{ADAPTER}");
-    let mut script = session
-        .create_script(&source, &mut ScriptOption::new().set_name("ck3-local-host"))
-        .context("创建 CK3 本地房主适配器")?;
     let (send, events) = mpsc::channel();
-    script.handle_message(AdapterMessages(send))?;
-    script.load().context("加载 CK3 本地房主适配器")?;
+    let _script = session
+        .load(&source, send)
+        .context("加载 CK3 本地房主适配器")?;
     if stopped(stop, Duration::ZERO) {
         return Ok(());
     }
@@ -211,16 +183,11 @@ fn attach(
         json!({"process_id": pid, "username": username}),
     );
 
-    let result = process_events(&session, backend, capture, &events, stop, updates);
-    if !session.is_detached() {
-        let _ = script.unload();
-        session.detach().context("卸载 CK3 房主适配器")?;
-    }
-    result
+    process_events(&session, backend, capture, &events, stop, updates)
 }
 
 fn process_events(
-    session: &frida::Session<'_>,
+    session: &Session,
     backend: &LocalBackend,
     capture: &Path,
     events: &Receiver<Result<Value>>,
@@ -238,7 +205,6 @@ fn process_events(
                         updates.send(HostUpdate::Ready)?;
                     }
                     Some("local_session_profile") => candidate = event.get("profile").cloned(),
-                    Some("local_bridge_error") => bail!("CK3 房主适配器错误 {}", event["message"]),
                     _ => {}
                 }
                 let name = event["event"]

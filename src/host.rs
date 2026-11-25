@@ -2,6 +2,8 @@ mod auth;
 pub mod backend;
 #[cfg(feature = "host-bridge")]
 mod bridge;
+#[cfg(feature = "host-bridge")]
+mod frida_runtime;
 #[cfg(any(feature = "host-bridge", test))]
 mod frontend;
 mod wire;

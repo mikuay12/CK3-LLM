@@ -10,12 +10,13 @@ let localSettings = false;
 let loginRequested = false;
 let lastStatus = '';
 let lastProfileMatch = '';
+let lastError = '';
 let nextProfileCheck = 0;
 let rtConnected = null;
 const installed = new Set();
 
 function emit(event, fields = {}) {
-    send({ type: 'ck3:host', id: 0, result: 'ok', returns: { event, ...fields } });
+    send({ event, ...fields });
 }
 
 function wrapper() {
@@ -101,7 +102,11 @@ function onTick() {
         beginLogin(value);
         emit('local_game_login_requested');
     } catch (error) {
-        emit('local_bridge_error', { message: String(error) });
+        const message = String(error);
+        if (message !== lastError) {
+            lastError = message;
+            emit('local_bridge_error', { message });
+        }
     }
 }
 
