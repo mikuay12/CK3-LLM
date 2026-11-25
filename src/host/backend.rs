@@ -9,10 +9,11 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use axum::extract::{
-    Path as Route, Query, State, WebSocketUpgrade,
+    Path as Route, Query, Request, State, WebSocketUpgrade,
     ws::{Message, WebSocket},
 };
 use axum::http::{HeaderMap, StatusCode, header::AUTHORIZATION};
+use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::{
     Json, Router,
@@ -67,6 +68,10 @@ impl LocalBackend {
                     Json(json!({"code": 5, "message": "Unknown local endpoint"})),
                 )
             })
+            .layer(middleware::from_fn_with_state(
+                Arc::clone(&state),
+                record_http,
+            ))
             .with_state(Arc::clone(&state));
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -161,6 +166,21 @@ impl Peer {
 }
 
 type ApiError = (StatusCode, Json<Value>);
+
+async fn record_http(State(state): State<Arc<Shared>>, request: Request, next: Next) -> Response {
+    let path = request.uri().path().to_owned();
+    let method = request.method().clone();
+    let result = next.run(request).await;
+    let status = result.status();
+    if path == "/ws" || status.is_client_error() || status.is_server_error() {
+        state.record(
+            "http_status",
+            json!({"path": path, "method": method.as_str(), "status": status.as_u16()}),
+            None,
+        );
+    }
+    result
+}
 
 async fn health() -> Json<Value> {
     Json(json!({"status": "ok", "backend": "ck3-local"}))

@@ -1,5 +1,5 @@
 mod game;
-mod game_protocol;
+pub(crate) mod game_protocol;
 pub mod native;
 
 use std::path::Path;
@@ -214,6 +214,11 @@ enum Input {
     Stop,
     Select(u32),
     Ready(bool),
+    Command {
+        name: String,
+        fields: serde_json::Map<String, serde_json::Value>,
+        attribs: u8,
+    },
 }
 
 impl SessionTask {
@@ -251,6 +256,21 @@ impl SessionTask {
     pub fn set_ready(&self, ready: bool) -> Result<()> {
         self.commands
             .send(Input::Ready(ready))
+            .context("房间已断开")
+    }
+
+    pub fn submit_command(
+        &self,
+        name: String,
+        fields: serde_json::Map<String, serde_json::Value>,
+        attribs: u8,
+    ) -> Result<()> {
+        self.commands
+            .send(Input::Command {
+                name,
+                fields,
+                attribs,
+            })
             .context("房间已断开")
     }
 }
@@ -413,6 +433,22 @@ fn run(
                         } else {
                             "已提交取消准备".into()
                         }))?,
+                        Err(error) => updates.send(Update::Notice(format!("{error:#}")))?,
+                    }
+                }
+                Ok(Input::Command {
+                    name,
+                    fields,
+                    attribs,
+                }) if leaving.is_none() => {
+                    let result = game
+                        .as_mut()
+                        .context("尚未进入游戏会话")
+                        .and_then(|game| game.submit(&client, &name, &fields, attribs));
+                    match result {
+                        Ok(()) => {
+                            updates.send(Update::ActionSubmitted(format!("已提交 {name}")))?
+                        }
                         Err(error) => updates.send(Update::Notice(format!("{error:#}")))?,
                     }
                 }

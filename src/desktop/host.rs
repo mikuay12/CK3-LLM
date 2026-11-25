@@ -78,8 +78,8 @@ impl HostPage {
                 ui.add(TextEdit::singleline(&mut settings.username).desired_width(f32::INFINITY));
                 ui.horizontal(|ui| {
                     ui.label("本地联机端口");
-                    ui.add(DragValue::new(&mut settings.port).range(0..=u16::MAX))
-                        .on_hover_text("输入 0 自动选择空闲端口");
+                    ui.add(DragValue::new(&mut settings.port).range(1..=u16::MAX))
+                        .on_hover_text("CK3 实机验证使用默认端口 7350");
                 });
             });
             ui.add_space(6.0);

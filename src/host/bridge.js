@@ -123,6 +123,26 @@ function installNakama(module) {
         },
     });
     Interceptor.attach(module.getExportByName('NClient_tick'), { onEnter: onTick });
+    const createRealtime = module.findExportByName('NClient_createRtClientEx');
+    if (createRealtime !== null) {
+        Interceptor.attach(createRealtime, {
+            onEnter(args) {
+                if (!localSettings || args[1].isNull()) return;
+                const host = args[1].readPointer();
+                emit('game_realtime_settings', {
+                    host: host.isNull() ? null : host.readUtf8String(),
+                    port: args[1].add(8).readU32(),
+                    ssl: args[1].add(12).readU8() !== 0,
+                });
+            },
+        });
+    }
+    const connectRealtime = module.findExportByName('NRtClient_connect');
+    if (connectRealtime !== null) {
+        Interceptor.attach(connectRealtime, {
+            onEnter() { if (localSettings) emit('game_realtime_connect'); },
+        });
+    }
 }
 
 function installLocalName(module) {

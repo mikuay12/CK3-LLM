@@ -210,6 +210,12 @@ impl TransferInfo {
 #[derive(Default)]
 pub struct Writer(Vec<u8>);
 
+impl From<Vec<u8>> for Writer {
+    fn from(data: Vec<u8>) -> Self {
+        Self(data)
+    }
+}
+
 impl Writer {
     pub fn command(
         kind: u16,

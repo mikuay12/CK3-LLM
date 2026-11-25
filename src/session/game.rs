@@ -303,6 +303,21 @@ impl Game {
         self.command(client, READY, 0, 14, body)
     }
 
+    pub fn submit(
+        &mut self,
+        client: &NativeClient<'_>,
+        name: &str,
+        fields: &serde_json::Map<String, serde_json::Value>,
+        attribs: u8,
+    ) -> Result<()> {
+        ensure!(self.ready, "完成快照加载后才能提交游戏命令");
+        let machine = self.machine.context("本地玩家编号缺失")?;
+        let packet = crate::commands::encode(name, fields, self.identity, machine, 0, attribs)?;
+        self.send(client, 0, &packet)?;
+        self.identity = self.identity.wrapping_add(1);
+        Ok(())
+    }
+
     pub fn request_disconnect(&mut self, client: &NativeClient<'_>) -> Result<bool> {
         if self.closed || self.machine.is_none() {
             return Ok(false);

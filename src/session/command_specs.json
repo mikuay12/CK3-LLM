@@ -1,0 +1,2669 @@
+{
+  "accept_task_contract": {
+    "token": 14764,
+    "fields": [
+      {
+        "name": "task_contract",
+        "token": 14750,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "add_construction": {
+    "token": 11657,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "province",
+        "token": 10194,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "index",
+        "token": 524,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "type",
+        "token": 225,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "add_dynasty_perk": {
+    "token": 13147,
+    "fields": [
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "perk",
+        "token": 10597,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "trait",
+        "token": 10255,
+        "kind": "text",
+        "default": null,
+        "optional": true,
+        "choices": {}
+      }
+    ]
+  },
+  "add_law": {
+    "token": 12275,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "law",
+        "token": 12274,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "add_maa_to_regiment": {
+    "token": 11594,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "regiment",
+        "token": 10615,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "count",
+        "token": 1114,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "cost",
+        "token": 11045,
+        "kind": "token_value",
+        "default": "yes",
+        "optional": false,
+        "choices": {
+          "yes": 1038,
+          "no": 1039
+        }
+      }
+    ]
+  },
+  "add_perk": {
+    "token": 13136,
+    "fields": [
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "perk",
+        "token": 10597,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "add_player": {
+    "token": 1695,
+    "fields": [
+      {
+        "name": "name",
+        "token": 27,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "is_host",
+        "token": 1295,
+        "kind": "bool",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "add_rally_point": {
+    "token": 12821,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "add_title_law": {
+    "token": 13395,
+    "fields": [
+      {
+        "name": "title",
+        "token": 1742,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "law",
+        "token": 12274,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "attach_to_unit": {
+    "token": 13740,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "unit",
+        "token": 10231,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "to",
+        "token": 1321,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "cancel_construction": {
+    "token": 11659,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "province",
+        "token": 10194,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "cancel_travel_plan_command": {
+    "token": 14269,
+    "fields": [
+      {
+        "name": "travel_plan",
+        "token": 14262,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "change_council_task": {
+    "token": 11851,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "liege",
+        "token": 10541,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "active_council_task",
+        "token": 11819,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "task_type",
+        "token": 11784,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "scope_value",
+        "default": {},
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "clear_title_laws": {
+    "token": 12845,
+    "fields": [
+      {
+        "name": "title",
+        "token": 1742,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "client_ping": {
+    "token": 10120,
+    "fields": [
+      {
+        "name": "turn",
+        "token": 10122,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "close_succession": {
+    "token": 15360,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "create_faction": {
+    "token": 12128,
+    "fields": [
+      {
+        "name": "faction_type",
+        "token": 12129,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "create_maa_regiment": {
+    "token": 11592,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "title",
+        "token": 1742,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "regiment",
+        "token": 10615,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "count",
+        "token": 1114,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "cost",
+        "token": 11045,
+        "kind": "token_value",
+        "default": "yes",
+        "optional": false,
+        "choices": {
+          "yes": 1038,
+          "no": 1039
+        }
+      }
+    ]
+  },
+  "create_title": {
+    "token": 11456,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "landed_title",
+        "token": 10221,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "decline_activity_invite_command": {
+    "token": 14794,
+    "fields": [
+      {
+        "name": "activity",
+        "token": 10262,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "designate_diarch": {
+    "token": 14119,
+    "fields": [
+      {
+        "name": "liege",
+        "token": 10541,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "designated_diarch",
+        "token": 14118,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "destroy_faction": {
+    "token": 12127,
+    "fields": [
+      {
+        "name": "faction",
+        "token": 12004,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "destroy_maa_regiment": {
+    "token": 11591,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "regiment",
+        "token": 10615,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "destroy_title": {
+    "token": 11457,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "landed_title",
+        "token": 10221,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "cost",
+        "token": 11045,
+        "kind": "bool",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "detach_commander": {
+    "token": 11625,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "detatch_from_unit": {
+    "token": 13741,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "unit",
+        "token": 10231,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "disband_army": {
+    "token": 11182,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "dismiss_important_action": {
+    "token": 11868,
+    "fields": [
+      {
+        "name": "important_action_item",
+        "token": 11828,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "end_scheme": {
+    "token": 10529,
+    "fields": [
+      {
+        "name": "scheme",
+        "token": 10506,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "equip_artifact": {
+    "token": 13724,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "artifact",
+        "token": 13716,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "replace",
+        "token": 1586,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "execute_decision": {
+    "token": 11876,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "puppeteer",
+        "token": 16150,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "decision",
+        "token": 11877,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "parameters",
+        "token": 12282,
+        "kind": "boolean_event_target_parameters",
+        "default": null,
+        "optional": true,
+        "choices": {}
+      }
+    ]
+  },
+  "expose_secret": {
+    "token": 12891,
+    "fields": [
+      {
+        "name": "secret",
+        "token": 10495,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "extend_mercenary": {
+    "token": 12741,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "mercenary_company",
+        "token": 12615,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "cost",
+        "token": 11045,
+        "kind": "bool",
+        "default": false,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "war",
+        "token": 11071,
+        "kind": "bool",
+        "default": false,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "faction_press_demand": {
+    "token": 12131,
+    "fields": [
+      {
+        "name": "faction",
+        "token": 12004,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_chunk_recieved_command": {
+    "token": 1752,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "chunk_id",
+        "token": 1738,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "chunks_completed",
+        "token": 1739,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "chunks_total",
+        "token": 1740,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_fast_cmd_chunk": {
+    "token": 1563,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "chunk_id",
+        "token": 1738,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "data",
+        "token": 240,
+        "kind": "blob",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_fast_cmd_chunkstatus": {
+    "token": 1564,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "data",
+        "token": 240,
+        "kind": "blob",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_fast_cmd_handshake": {
+    "token": 1561,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "filetransfer_fast_fld_chunk_size",
+        "token": 1565,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_fast_cmd_initialize": {
+    "token": 1562,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_fast_cmd_request_handshake": {
+    "token": 1560,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_init_command": {
+    "token": 1696,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_request_chunk_command": {
+    "token": 1750,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "chunk_id",
+        "token": 1738,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_request_chunk_metas_command": {
+    "token": 1697,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_send_chunk_command": {
+    "token": 1751,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "chunk_id",
+        "token": 1738,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "data",
+        "token": 240,
+        "kind": "blob",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "filetransfer_send_chunk_metas_command": {
+    "token": 1698,
+    "fields": [
+      {
+        "name": "filename",
+        "token": 950,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "size",
+        "token": 47,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksum",
+        "token": 377,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "checksums",
+        "token": 1735,
+        "kind": "i32_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "sizes",
+        "token": 1736,
+        "kind": "u32_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "fire_council_position": {
+    "token": 11740,
+    "fields": [
+      {
+        "name": "liege",
+        "token": 10541,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "position",
+        "token": 76,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "give_court_position": {
+    "token": 13961,
+    "fields": [
+      {
+        "name": "employer",
+        "token": 10250,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "employee",
+        "token": 13965,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "court_position",
+        "token": 13960,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "hire_holy_order": {
+    "token": 12460,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "holy_order",
+        "token": 12451,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "cost",
+        "token": 11045,
+        "kind": "bool",
+        "default": false,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "war",
+        "token": 11071,
+        "kind": "bool",
+        "default": false,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "hire_mercenary": {
+    "token": 12738,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "mercenary_company",
+        "token": 12615,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "flags",
+        "token": 1764,
+        "kind": "i32",
+        "default": 3,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "join_faction": {
+    "token": 12126,
+    "fields": [
+      {
+        "name": "faction",
+        "token": 12004,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "knight_status": {
+    "token": 12550,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "knight_status",
+        "token": 12550,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "force": 414,
+          "default": 838,
+          "not": 1272,
+          "none": 357
+        }
+      }
+    ]
+  },
+  "leave_council_position": {
+    "token": 12640,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "leave_faction": {
+    "token": 12125,
+    "fields": [
+      {
+        "name": "faction",
+        "token": 12004,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "mass_prisoner_action": {
+    "token": 13380,
+    "fields": [
+      {
+        "name": "interaction",
+        "token": 11852,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "ransom_interaction": 11453,
+          "release_from_prison_interaction": 11463,
+          "execute_prisoner_interaction": 11875
+        }
+      },
+      {
+        "name": "actor",
+        "token": 10410,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "prisoners",
+        "token": 13065,
+        "kind": "u32_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "merge_units": {
+    "token": 12193,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "units",
+        "token": 10232,
+        "kind": "u32_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "move_rally_point": {
+    "token": 12819,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "rally_point",
+        "token": 12820,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "move_unit": {
+    "token": 10235,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "unit",
+        "token": 10231,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "unit_order_type",
+        "token": 13328,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "set": 13327,
+          "append": 10725,
+          "invalid": 1276
+        }
+      },
+      {
+        "name": "type",
+        "token": 225,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "land": 12213,
+          "water": 12214,
+          "any": 12224
+        }
+      },
+      {
+        "name": "gathering_army",
+        "token": 10685,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "reset": 1544,
+          "default": 838
+        }
+      }
+    ]
+  },
+  "nominate_successor_for_title": {
+    "token": 12948,
+    "fields": [
+      {
+        "name": "elector",
+        "token": 12949,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "title",
+        "token": 1742,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "candidate",
+        "token": 12098,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "force",
+        "token": 414,
+        "kind": "bool",
+        "default": false,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "pause_game_command": {
+    "token": 11865,
+    "fields": [
+      {
+        "name": "player",
+        "token": 10058,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "value",
+        "token": 722,
+        "kind": "bool",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "raid": {
+    "token": 13214,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "raise_troops": {
+    "token": 12822,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "rally_points",
+        "token": 12818,
+        "kind": "rally_points",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "rally_point",
+        "token": 12820,
+        "kind": "i32",
+        "default": -1,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "raise_army_type",
+        "token": 14046,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "raid": 13214,
+          "regular": 12731,
+          "men_at_arms": 11399,
+          "barter": 15909,
+          "none": 357
+        }
+      },
+      {
+        "name": "supply_limit",
+        "token": 11626,
+        "kind": "bool",
+        "default": false,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "remove_rally_point": {
+    "token": 12823,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "reorganize_army": {
+    "token": 12548,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "merge_army",
+        "token": 11274,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "select_unit",
+        "token": 11276,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "disband_army",
+        "token": 11182,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "regiments",
+        "token": 10601,
+        "kind": "u32_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "reply_character_interaction": {
+    "token": 10420,
+    "fields": [
+      {
+        "name": "character_interaction",
+        "token": 10409,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "accept",
+        "token": 10416,
+        "kind": "i32_enum",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "accept": 0,
+          "reject": 1,
+          "block": 2,
+          "acknowledge": 4
+        }
+      }
+    ]
+  },
+  "revoke_court_position": {
+    "token": 13962,
+    "fields": [
+      {
+        "name": "court_position",
+        "token": 13960,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "select_commander": {
+    "token": 11624,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "select_culture_fascination": {
+    "token": 12600,
+    "fields": [
+      {
+        "name": "player",
+        "token": 10058,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "culture",
+        "token": 10228,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "culture_innovation",
+        "token": 12161,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "select_event_option": {
+    "token": 10196,
+    "fields": [
+      {
+        "name": "data",
+        "token": 240,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "option",
+        "token": 1743,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_activity_intent_command": {
+    "token": 14339,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "intent",
+        "token": 13869,
+        "kind": "activity_intent",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_character_controller": {
+    "token": 1758,
+    "fields": [
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "playable",
+        "token": 1759,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "leave_ai_on",
+        "token": 1474,
+        "kind": "bool",
+        "default": false,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_character_focus": {
+    "token": 11324,
+    "fields": [
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "focus_type",
+        "token": 11266,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "actor",
+        "token": 10410,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_countermeasure": {
+    "token": 14552,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "scheme_countermeasure_type",
+        "token": 14553,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_diarchy_mandate": {
+    "token": 14128,
+    "fields": [
+      {
+        "name": "liege",
+        "token": 10541,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "mandate",
+        "token": 14127,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_maa_reinforce": {
+    "token": 11599,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "reinforce",
+        "token": 11600,
+        "kind": "bool",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_observer_command": {
+    "token": 1471,
+    "fields": [
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "flag",
+        "token": 900,
+        "kind": "bool",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_player_here_command": {
+    "token": 681,
+    "fields": [
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_primary_title": {
+    "token": 12232,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "landed_title",
+        "token": 10221,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_ready_command": {
+    "token": 1702,
+    "fields": [
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "status",
+        "token": 208,
+        "kind": "bool",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_realm_capital": {
+    "token": 12168,
+    "fields": [
+      {
+        "name": "cooldown",
+        "token": 10652,
+        "kind": "bool",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "landed_title",
+        "token": 10221,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "set_speed": {
+    "token": 10733,
+    "fields": [
+      {
+        "name": "speed",
+        "token": 110,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "split_army_for_siege": {
+    "token": 12176,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "actor",
+        "token": 10410,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "soldiers_to_stay",
+        "token": 12177,
+        "kind": "i32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "split_half_army": {
+    "token": 11275,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "actor",
+        "token": 10410,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "start_assault": {
+    "token": 12643,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "siege",
+        "token": 11326,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "start_court_position_task": {
+    "token": 14744,
+    "fields": [
+      {
+        "name": "court_position",
+        "token": 13960,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "task_type",
+        "token": 11784,
+        "kind": "text",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "stop": {
+    "token": 106,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "units",
+        "token": 10232,
+        "kind": "u32_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "stop_assault": {
+    "token": 12644,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "siege",
+        "token": 11326,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "stop_court_position_task": {
+    "token": 14745,
+    "fields": [
+      {
+        "name": "court_position",
+        "token": 13960,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "stop_gathering_army": {
+    "token": 13426,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "swap_council_position": {
+    "token": 11739,
+    "fields": [
+      {
+        "name": "liege",
+        "token": 10541,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "target",
+        "token": 107,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "sync_players_command": {
+    "token": 1701,
+    "fields": [
+      {
+        "name": "machineid",
+        "token": 22,
+        "kind": "u32_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "players",
+        "token": 1762,
+        "kind": "string_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "flags",
+        "token": 1764,
+        "kind": "u8_list",
+        "default": [],
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "toggle_raiding": {
+    "token": 13382,
+    "fields": [
+      {
+        "name": "valid_for",
+        "token": 13322,
+        "kind": "token_value",
+        "default": null,
+        "optional": false,
+        "choices": {
+          "none": 357,
+          "player": 10058,
+          "ai": 10975
+        }
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "army",
+        "token": 10602,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "toggle_scheme_agents_auto_assign": {
+    "token": 15460,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "unequip_artifact": {
+    "token": 13725,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "artifact",
+        "token": 13716,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "usurp_title": {
+    "token": 11467,
+    "fields": [
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "landed_title",
+        "token": 10221,
+        "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  }
+}

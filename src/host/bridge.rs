@@ -36,6 +36,10 @@ pub fn run(
         !username.is_empty() && !username.contains('\0'),
         "请填写有效的房主名称"
     );
+    ensure!(
+        settings.port != 0,
+        "请选择明确的 CK3 联机端口，默认端口为 7350"
+    );
     let directory = std::path::absolute(&game_dir).context("检查 CK3 安装目录")?;
     let executable = directory.join("binaries/ck3.exe");
     verify_executable(&executable, stop)?;
@@ -43,16 +47,25 @@ pub fn run(
         return Ok(());
     }
 
+    let settings_file = Settings::path()?;
+    let data = settings_file.parent().context("找不到数据存储目录")?;
+    std::fs::create_dir_all(data)?;
+    let launch_lock = File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(data.join("host.lock"))?;
+    launch_lock
+        .try_lock()
+        .context("另一个 CK3-LLM 窗口正在管理房主")?;
     let device = Device::local(FRIDA_VERSION)?;
     ensure!(
         !device.ck3_running()?,
         "已有 CK3 在运行，请在游戏中退出后再启动本地房主"
     );
 
-    let settings_file = Settings::path()?;
-    let capture = settings_file
-        .parent()
-        .context("找不到数据存储目录")?
+    let capture = data
         .join("captures")
         .join(format!("local-game-{}", Uuid::new_v4()));
     let backend = LocalBackend::start(settings.port, Some(&capture))?;

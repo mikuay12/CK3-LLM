@@ -119,7 +119,15 @@ fn rust_client_hotjoins_receives_snapshot_and_submits_player_controls() {
                         "Synthetic AI"
                     );
                     snapshot_opened = true;
-                    task.select_character(12345).unwrap();
+                    task.submit_command(
+                        "set_character_controller".into(),
+                        json!({"machineid": 2, "playable": 12345})
+                            .as_object()
+                            .unwrap()
+                            .clone(),
+                        14,
+                    )
+                    .unwrap();
                     task.set_ready(true).unwrap();
                 }
                 Update::Ended(result) => {

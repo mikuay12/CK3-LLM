@@ -9,7 +9,7 @@ use ck3_llm::session::{
 use ck3_llm::settings::ConnectionSettings;
 use eframe::egui::{Button, RichText, TextEdit, Ui};
 
-use super::{notifications::NotificationsPage, style};
+use super::{actions::ActionEditor, notifications::NotificationsPage, style};
 
 #[derive(Default, PartialEq, Eq)]
 enum Phase {
@@ -50,6 +50,7 @@ pub struct ConnectionPage {
     snapshot: Option<PathBuf>,
     character: String,
     handshake_code: Option<u32>,
+    actions: ActionEditor,
 }
 
 impl ConnectionPage {
@@ -260,6 +261,11 @@ impl ConnectionPage {
                                 self.feedback = Some((false, format!("{error:#}")));
                             }
                         });
+                        if let Some(machine) = self.game_machine
+                            && let Some(Err(error)) = self.actions.show(ui, task, machine)
+                        {
+                            self.feedback = Some((false, format!("{error:#}")));
+                        }
                     }
                 }
             });
@@ -274,6 +280,7 @@ impl ConnectionPage {
         self.transfer = None;
         self.snapshot = None;
         self.handshake_code = None;
+        self.actions = ActionEditor::default();
         match SessionTask::start(settings.clone()) {
             Ok(task) => {
                 self.task = Some(task);

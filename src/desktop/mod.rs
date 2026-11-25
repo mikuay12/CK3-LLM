@@ -1,3 +1,4 @@
+mod actions;
 mod connection;
 mod host;
 mod memory;
