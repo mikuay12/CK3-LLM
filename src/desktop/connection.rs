@@ -45,6 +45,11 @@ pub struct ConnectionPage {
     feedback: Option<(bool, String)>,
     room: Option<(String, String)>,
     traffic: Traffic,
+    game_machine: Option<i32>,
+    transfer: Option<(u32, u32)>,
+    snapshot: Option<PathBuf>,
+    character: String,
+    handshake_code: Option<u32>,
 }
 
 impl ConnectionPage {
@@ -86,10 +91,19 @@ impl ConnectionPage {
                     self.room = Some((match_id, user_id));
                 }
                 Update::Traffic(traffic) => self.traffic = traffic,
+                Update::GameHandshake(code) => self.handshake_code = Some(code),
+                Update::GameConnected { machine } => self.game_machine = Some(machine),
+                Update::GameTransfer { received, total } => self.transfer = Some((received, total)),
+                Update::GameSnapshot { path, machine } => {
+                    self.game_machine = Some(machine);
+                    self.snapshot = Some(path);
+                }
+                Update::ActionSubmitted(message) => self.feedback = Some((true, message)),
                 Update::Notice(message) => self.feedback = Some((false, message)),
                 Update::Ended(result) => {
                     self.task = None;
                     self.room = None;
+                    self.game_machine = None;
                     match result {
                         Ok(()) => self.phase = Phase::Idle,
                         Err(error) => self.set_error(error),
@@ -100,11 +114,12 @@ impl ConnectionPage {
         }
     }
 
-    pub fn show(&mut self, ui: &mut Ui, settings: &mut ConnectionSettings) {
+    pub fn show(&mut self, ui: &mut Ui, settings: &mut ConnectionSettings) -> Option<PathBuf> {
         style::card(ui, |ui| {
             ui.add_enabled_ui(!self.busy(), |ui| {
                 path_field(ui, "CK3 安装目录", &mut settings.game_dir, true);
                 path_field(ui, "房间配置文件", &mut settings.profile_path, false);
+                ui.checkbox(&mut settings.join_game, "尝试游戏内热加入");
                 ui.columns(2, |columns| {
                     let [player, identity] = columns else {
                         unreachable!()
@@ -188,11 +203,66 @@ impl ConnectionPage {
                 );
             }
         });
+        let mut open = None;
+        if self.game_machine.is_some() || self.snapshot.is_some() || self.handshake_code.is_some() {
+            ui.add_space(10.0);
+            style::card(ui, |ui| {
+                if let Some(machine) = self.game_machine {
+                    ui.label(format!("游戏玩家编号 {machine}"));
+                } else if self.task.is_some()
+                    && let Some(code) = self.handshake_code
+                {
+                    ui.label(format!("游戏握手结果 {code}"));
+                }
+                if let Some((received, total)) = self.transfer {
+                    ui.label(format!("快照分块 {received} / {total}"));
+                }
+                if let Some(snapshot) = &self.snapshot {
+                    if ui.button("查看收到的快照").clicked() {
+                        open = Some(snapshot.clone());
+                    }
+                    if let Some(task) = &self.task
+                        && self.phase == Phase::Joined
+                    {
+                        ui.horizontal_wrapped(|ui| {
+                            ui.add(
+                                TextEdit::singleline(&mut self.character)
+                                    .desired_width(130.0)
+                                    .hint_text("人物 ID"),
+                            );
+                            let character = self.character.trim().parse::<u32>();
+                            let mut action = None;
+                            if ui
+                                .add_enabled(character.is_ok(), Button::new("选角"))
+                                .clicked()
+                                && let Ok(character) = character
+                            {
+                                action = Some(task.select_character(character));
+                            }
+                            if ui.button("准备").clicked() {
+                                action = Some(task.set_ready(true));
+                            }
+                            if ui.button("取消准备").clicked() {
+                                action = Some(task.set_ready(false));
+                            }
+                            if let Some(Err(error)) = action {
+                                self.feedback = Some((false, format!("{error:#}")));
+                            }
+                        });
+                    }
+                }
+            });
+        }
+        open
     }
 
     fn join(&mut self, settings: &ConnectionSettings) {
         self.feedback = None;
         self.traffic = Traffic::default();
+        self.game_machine = None;
+        self.transfer = None;
+        self.snapshot = None;
+        self.handshake_code = None;
         match SessionTask::start(settings.clone()) {
             Ok(task) => {
                 self.task = Some(task);

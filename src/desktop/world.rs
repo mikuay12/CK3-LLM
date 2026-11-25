@@ -59,6 +59,22 @@ pub struct WorldPage {
 }
 
 impl WorldPage {
+    pub fn open(&mut self, file: PathBuf) {
+        if self.busy() {
+            self.error = Some("世界快照正在读取".into());
+            return;
+        }
+        self.start(move || {
+            let world = Arc::new(World::open(&file)?);
+            let summary = world.summary()?;
+            Ok(Output::Opened {
+                file,
+                world,
+                summary,
+            })
+        });
+    }
+
     pub fn busy(&self) -> bool {
         self.job.is_some()
     }
@@ -102,15 +118,7 @@ impl WorldPage {
                     .add_filter("CK3 快照", &["ck3", "sav", "zip", "bin"])
                     .pick_file()
             {
-                self.start(move || {
-                    let world = Arc::new(World::open(&file)?);
-                    let summary = world.summary()?;
-                    Ok(Output::Opened {
-                        file,
-                        world,
-                        summary,
-                    })
-                });
+                self.open(file);
             }
             if let Some((file, world)) = &self.opened {
                 let world = Arc::clone(world);

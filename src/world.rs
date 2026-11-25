@@ -1,4 +1,4 @@
-mod binary;
+pub(crate) mod binary;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -43,6 +43,10 @@ impl World {
             source_sha256,
             objects: Mutex::default(),
         })
+    }
+
+    pub(crate) fn binary(&self) -> &[u8] {
+        &self.bytes
     }
 
     pub fn summary(&self) -> Result<Value> {

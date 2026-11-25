@@ -53,8 +53,14 @@ pub fn index(bytes: &[u8], span: Span, wrapped: bool) -> Result<Index> {
     while reader.position < reader.bytes.len() {
         let raw_key = reader.token()?;
         let key = key(raw_key)?;
-        ensure!(reader.peek() == Some(EQUAL), "世界属性缺少赋值标记");
-        reader.take(2)?;
+        if reader.peek() == Some(EQUAL) {
+            reader.take(2)?;
+        } else {
+            ensure!(
+                raw_key.tag == DATA && reader.peek() == Some(BLOB),
+                "世界属性缺少赋值标记"
+            );
+        }
         let start = reader.base + reader.position;
         reader.skip_value()?;
         output
@@ -73,6 +79,16 @@ pub fn decode(bytes: &[u8], span: Span) -> Result<Value> {
         "世界属性包含未解析数据"
     );
     Ok(node)
+}
+
+pub fn blob(bytes: &[u8], span: Span) -> Result<&[u8]> {
+    let mut reader = Reader::new(bytes, span)?;
+    let raw = reader.token()?;
+    ensure!(
+        raw.tag == BLOB && reader.position == reader.bytes.len(),
+        "预期二进制数据块"
+    );
+    Ok(raw.data)
 }
 
 struct Reader<'a> {

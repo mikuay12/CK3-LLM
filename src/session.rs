@@ -1,3 +1,5 @@
+mod game;
+mod game_protocol;
 pub mod native;
 
 use std::path::Path;
@@ -10,7 +12,9 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use reqwest::{Url, blocking::Client};
 use serde::Deserialize;
 
-use crate::protocol::{self, GAME_DATA_OPCODE};
+use self::game::Game;
+use self::game_protocol::Compatibility;
+use crate::protocol::{self, Envelope, GAME_DATA_OPCODE};
 use crate::settings::{ConnectionSettings, read_json};
 use native::{Event, NakamaSdk, WireFormat};
 
@@ -154,17 +158,22 @@ pub struct Traffic {
 }
 
 impl Traffic {
-    fn record(&mut self, opcode: i64, payload: &[u8]) {
+    fn record<'a>(&mut self, opcode: i64, payload: &'a [u8]) -> Option<Envelope<'a>> {
         self.packets += 1;
         self.bytes += payload.len() as u64;
-        if opcode == GAME_DATA_OPCODE {
-            match protocol::decode(payload) {
-                Ok(frame) => {
-                    self.pdx_frames += 1;
-                    self.pdx_messages += frame.messages.len() as u64;
-                    self.last_sequence = Some(frame.sequence);
-                }
-                Err(_) => self.invalid_frames += 1,
+        if opcode != GAME_DATA_OPCODE {
+            return None;
+        }
+        match protocol::decode(payload) {
+            Ok(frame) => {
+                self.pdx_frames += 1;
+                self.pdx_messages += frame.messages.len() as u64;
+                self.last_sequence = Some(frame.sequence);
+                Some(frame)
+            }
+            Err(_) => {
+                self.invalid_frames += 1;
+                None
             }
         }
     }
@@ -173,21 +182,43 @@ impl Traffic {
 pub enum Update {
     Authenticated,
     Joining,
-    Joined { match_id: String, user_id: String },
+    Joined {
+        match_id: String,
+        user_id: String,
+    },
+    GameHandshake(u32),
+    GameConnected {
+        machine: i32,
+    },
+    GameTransfer {
+        received: u32,
+        total: u32,
+    },
+    GameSnapshot {
+        path: std::path::PathBuf,
+        machine: i32,
+    },
+    ActionSubmitted(String),
     Traffic(Traffic),
     Notice(String),
     Ended(Result<()>),
 }
 
 pub struct SessionTask {
-    stop: Sender<()>,
+    commands: Sender<Input>,
     updates: Receiver<Update>,
     worker: Option<JoinHandle<()>>,
 }
 
+enum Input {
+    Stop,
+    Select(u32),
+    Ready(bool),
+}
+
 impl SessionTask {
     pub fn start(options: ConnectionSettings) -> Result<Self> {
-        let (stop, control) = mpsc::channel();
+        let (commands, control) = mpsc::channel();
         let (messages, updates) = mpsc::channel();
         let worker = thread::Builder::new()
             .name("nakama-session".into())
@@ -197,7 +228,7 @@ impl SessionTask {
             })
             .context("启动联机线程")?;
         Ok(Self {
-            stop,
+            commands,
             updates,
             worker: Some(worker),
         })
@@ -208,7 +239,19 @@ impl SessionTask {
     }
 
     pub fn stop(&self) {
-        let _ = self.stop.send(());
+        let _ = self.commands.send(Input::Stop);
+    }
+
+    pub fn select_character(&self, character: u32) -> Result<()> {
+        self.commands
+            .send(Input::Select(character))
+            .context("房间已断开")
+    }
+
+    pub fn set_ready(&self, ready: bool) -> Result<()> {
+        self.commands
+            .send(Input::Ready(ready))
+            .context("房间已断开")
     }
 }
 
@@ -221,15 +264,28 @@ impl Drop for SessionTask {
     }
 }
 
-fn run(options: ConnectionSettings, stop: &Receiver<()>, updates: &Sender<Update>) -> Result<()> {
+fn run(
+    options: ConnectionSettings,
+    commands: &Receiver<Input>,
+    updates: &Sender<Update>,
+) -> Result<()> {
     ensure!(
         !options.profile_path.trim().is_empty(),
         "请选择房间配置文件"
     );
     let profile = Profile::load(Path::new(options.profile_path.trim()))?;
+    let username = options.username.trim().to_owned();
+    let handshake = if options.join_game {
+        let compatibility: Compatibility =
+            serde_json::from_value(serde_json::Value::Object(profile.handshake.clone()))
+                .context("房间配置的游戏握手数据无效")?;
+        Some(compatibility.handshake(&username)?)
+    } else {
+        None
+    };
     let sdk = NakamaSdk::load(Path::new(options.game_dir.trim()))?;
     let token = authenticate(&profile, &options)?;
-    if !matches!(stop.try_recv(), Err(TryRecvError::Empty)) {
+    if !matches!(commands.try_recv(), Err(TryRecvError::Empty)) {
         return Ok(());
     }
     updates.send(Update::Authenticated)?;
@@ -241,57 +297,138 @@ fn run(options: ConnectionSettings, stop: &Receiver<()>, updates: &Sender<Update
     let mut last_report = Instant::now();
     let mut traffic = Traffic::default();
     let mut reported = Traffic::default();
-    loop {
-        for event in client.poll() {
-            match event {
-                Event::Connected => {
-                    client.join(&profile.match_id)?;
-                    deadline = Instant::now() + PHASE_TIMEOUT;
-                    updates.send(Update::Joining)?;
-                }
-                Event::Joined { match_id, own, .. } if match_id == profile.match_id => {
-                    joined = true;
-                    updates.send(Update::Joined {
-                        match_id,
-                        user_id: own.user_id,
-                    })?;
-                }
-                Event::Data {
-                    match_id,
-                    opcode,
-                    payload,
-                    ..
-                } if match_id == profile.match_id => {
-                    traffic.record(opcode, &payload);
-                }
-                Event::JoinError { code, message } => bail!("加入房间失败（{code}）{message}"),
-                Event::Error { code, message } => {
-                    let detail = format!("Nakama 错误（{code}）{message}");
-                    if !joined {
-                        bail!(detail);
+    let mut game: Option<Game> = None;
+    let mut leaving = None;
+    let result = (|| {
+        loop {
+            for event in client.poll() {
+                match event {
+                    Event::Connected => {
+                        client.join(&profile.match_id)?;
+                        deadline = Instant::now() + PHASE_TIMEOUT;
+                        updates.send(Update::Joining)?;
                     }
-                    updates.send(Update::Notice(detail))?;
+                    Event::Joined {
+                        match_id,
+                        own,
+                        peers,
+                        ..
+                    } if match_id == profile.match_id => {
+                        joined = true;
+                        updates.send(Update::Joined {
+                            match_id: match_id.clone(),
+                            user_id: own.user_id.clone(),
+                        })?;
+                        if let Some(handshake) = &handshake {
+                            let host = peers
+                                .into_iter()
+                                .find(|peer| peer.user_id == profile.host_user_id)
+                                .context("房主当前不在房间中")?;
+                            game = Some(Game::connect(
+                                &client,
+                                match_id,
+                                username.clone(),
+                                handshake,
+                                host,
+                                own,
+                            )?);
+                            deadline = Instant::now() + PHASE_TIMEOUT;
+                        }
+                    }
+                    Event::Data {
+                        match_id,
+                        opcode,
+                        payload,
+                        presence,
+                    } if match_id == profile.match_id => {
+                        let frame = traffic.record(opcode, &payload);
+                        if let (Some(game), Some(frame)) = (&mut game, frame) {
+                            game.receive(&client, &presence, frame, updates)?;
+                        }
+                    }
+                    Event::JoinError { code, message } => bail!("加入房间失败（{code}）{message}"),
+                    Event::Error { code, message } => {
+                        let detail = format!("Nakama 错误（{code}）{message}");
+                        if !joined {
+                            bail!(detail);
+                        }
+                        updates.send(Update::Notice(detail))?;
+                    }
+                    Event::Disconnected { code, reason, .. } => {
+                        if leaving.is_some() {
+                            return Ok(());
+                        }
+                        bail!("Nakama 已断开（{code}）{reason}")
+                    }
+                    _ => {}
                 }
-                Event::Disconnected { code, reason, .. } => {
-                    bail!("Nakama 已断开（{code}）{reason}")
+            }
+            ensure!(
+                joined || Instant::now() < deadline,
+                "等待 Nakama 连接或入房超时"
+            );
+            if let Some(game) = &mut game {
+                if game.closed() {
+                    break;
+                }
+                if leaving.is_none() {
+                    ensure!(
+                        game.connected() || Instant::now() < deadline,
+                        "等待 CK3 游戏握手超时"
+                    );
+                    game.tick(&client, updates)?;
+                }
+            }
+            if leaving.is_some_and(|until| Instant::now() >= until) {
+                break;
+            }
+            if last_report.elapsed() >= REPORT_DELAY && traffic != reported {
+                updates.send(Update::Traffic(traffic.clone()))?;
+                reported = traffic.clone();
+                last_report = Instant::now();
+            }
+            match commands.recv_timeout(TICK_DELAY) {
+                Ok(Input::Stop) | Err(RecvTimeoutError::Disconnected) if leaving.is_none() => {
+                    if let Some(game) = &mut game
+                        && game.request_disconnect(&client)?
+                    {
+                        leaving = Some(Instant::now() + Duration::from_secs(3));
+                    } else {
+                        break;
+                    }
+                }
+                Ok(Input::Select(character)) if leaving.is_none() => {
+                    let game = game.as_mut().context("尚未进入游戏会话")?;
+                    match game.select(&client, character) {
+                        Ok(()) => updates
+                            .send(Update::ActionSubmitted(format!("已提交选角 {character}")))?,
+                        Err(error) => updates.send(Update::Notice(format!("{error:#}")))?,
+                    }
+                }
+                Ok(Input::Ready(ready)) if leaving.is_none() => {
+                    let game = game.as_mut().context("尚未进入游戏会话")?;
+                    match game.ready(&client, ready) {
+                        Ok(()) => updates.send(Update::ActionSubmitted(if ready {
+                            "已提交准备".into()
+                        } else {
+                            "已提交取消准备".into()
+                        }))?,
+                        Err(error) => updates.send(Update::Notice(format!("{error:#}")))?,
+                    }
                 }
                 _ => {}
             }
         }
-        ensure!(
-            joined || Instant::now() < deadline,
-            "等待 Nakama 连接或入房超时"
-        );
-        if last_report.elapsed() >= REPORT_DELAY && traffic != reported {
-            updates.send(Update::Traffic(traffic.clone()))?;
-            reported = traffic.clone();
-            last_report = Instant::now();
+        if traffic != reported {
+            updates.send(Update::Traffic(traffic))?;
         }
-        if stop.recv_timeout(TICK_DELAY) != Err(RecvTimeoutError::Timeout) {
-            if traffic != reported {
-                updates.send(Update::Traffic(traffic))?;
-            }
-            return Ok(());
-        }
+        Ok(())
+    })();
+    if result.is_err()
+        && leaving.is_none()
+        && let Some(game) = &mut game
+    {
+        let _ = game.request_disconnect(&client);
     }
+    result
 }

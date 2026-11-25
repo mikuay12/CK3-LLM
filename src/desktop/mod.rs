@@ -192,7 +192,12 @@ impl eframe::App for Desktop {
                                 }
                             }
                             Page::Connection => {
-                                self.connection.show(ui, &mut self.settings.connection)
+                                if let Some(path) =
+                                    self.connection.show(ui, &mut self.settings.connection)
+                                {
+                                    self.world.open(path);
+                                    self.page = Page::World;
+                                }
                             }
                             Page::World => self.world.show(ui),
                             Page::Model => self.model.show_settings(ui, &mut self.settings.model),

@@ -14,6 +14,7 @@ pub struct ConnectionSettings {
     pub profile_path: String,
     pub username: String,
     pub identity: String,
+    pub join_game: bool,
 }
 
 impl Default for ConnectionSettings {
@@ -23,6 +24,7 @@ impl Default for ConnectionSettings {
             profile_path: String::new(),
             username: "AIObserver".into(),
             identity: "AIObserver".into(),
+            join_game: false,
         }
     }
 }
