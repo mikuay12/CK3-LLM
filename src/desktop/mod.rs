@@ -1,4 +1,5 @@
 mod connection;
+mod host;
 mod model;
 mod style;
 
@@ -11,6 +12,7 @@ use eframe::egui::{self, Align, Button, Frame, Layout, Margin, RichText, ScrollA
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 enum Page {
+    Host,
     Connection,
     Model,
     Chat,
@@ -19,6 +21,7 @@ enum Page {
 impl Page {
     fn name(self) -> &'static str {
         match self {
+            Self::Host => "本地房主",
             Self::Connection => "房间连接",
             Self::Model => "模型设置",
             Self::Chat => "模型对话",
@@ -31,23 +34,28 @@ pub struct Desktop {
     settings: Settings,
     settings_path: Option<PathBuf>,
     settings_feedback: Option<(bool, String)>,
+    host: host::HostPage,
     connection: connection::ConnectionPage,
     model: model::ModelPage,
 }
 
 impl Desktop {
-    pub fn new(context: &egui::Context) -> Self {
+    pub fn new(context: &egui::Context, start_host: bool) -> Self {
         style::configure(context);
         let mut app = Self {
-            page: Page::Connection,
+            page: Page::Host,
             settings: Settings::default(),
             settings_path: None,
             settings_feedback: None,
+            host: host::HostPage::default(),
             connection: connection::ConnectionPage::default(),
             model: model::ModelPage::default(),
         };
         if let Err(error) = app.load_settings() {
             app.settings_feedback = Some((false, format!("{error:#}")));
+        } else if start_host {
+            app.host
+                .start(&app.settings.host, &app.settings.connection.game_dir);
         }
         app
     }
@@ -81,7 +89,7 @@ impl Desktop {
             .show(context, |ui| {
                 ui.label(RichText::new("CK3-LLM").size(23.0).strong());
                 ui.add_space(25.0);
-                for page in [Page::Connection, Page::Model, Page::Chat] {
+                for page in [Page::Host, Page::Connection, Page::Model, Page::Chat] {
                     let selected = self.page == page;
                     let text = RichText::new(page.name()).size(15.0).color(if selected {
                         style::BLUE_INK
@@ -118,9 +126,12 @@ impl Desktop {
 
 impl eframe::App for Desktop {
     fn update(&mut self, context: &egui::Context, _: &mut eframe::Frame) {
+        if let Some(profile) = self.host.poll() {
+            self.settings.connection.profile_path = profile.to_string_lossy().into_owned();
+        }
         self.connection.poll();
         self.model.poll();
-        if self.connection.busy() || self.model.busy() {
+        if self.host.busy() || self.connection.busy() || self.model.busy() {
             context.request_repaint_after(Duration::from_millis(60));
         }
         self.navigation(context);
@@ -153,6 +164,15 @@ impl eframe::App for Desktop {
                             ui.add_space(6.0);
                         }
                         match self.page {
+                            Page::Host => {
+                                if self.host.show(
+                                    ui,
+                                    &mut self.settings.host,
+                                    &mut self.settings.connection.game_dir,
+                                ) {
+                                    self.page = Page::Connection;
+                                }
+                            }
                             Page::Connection => {
                                 self.connection.show(ui, &mut self.settings.connection)
                             }

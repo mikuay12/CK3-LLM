@@ -226,7 +226,7 @@ fn metric(ui: &mut Ui, title: &str, value: u64) {
     ui.label(RichText::new(value.to_string()).size(23.0).strong());
 }
 
-fn path_field(ui: &mut Ui, title: &str, value: &mut String, folder: bool) {
+pub(super) fn path_field(ui: &mut Ui, title: &str, value: &mut String, folder: bool) {
     ui.label(title);
     ui.horizontal(|ui| {
         let width = (ui.available_width() - 87.0).max(120.0);

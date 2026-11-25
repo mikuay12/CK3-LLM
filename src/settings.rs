@@ -1,5 +1,5 @@
 use std::env;
-use std::fs::{self, File};
+use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
@@ -54,6 +54,23 @@ impl Default for ModelSettings {
 pub struct Settings {
     pub connection: ConnectionSettings,
     pub model: ModelSettings,
+    pub host: HostSettings,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(default)]
+pub struct HostSettings {
+    pub port: u16,
+    pub username: String,
+}
+
+impl Default for HostSettings {
+    fn default() -> Self {
+        Self {
+            port: 7350,
+            username: "LocalPlayer".into(),
+        }
+    }
 }
 
 impl Settings {
@@ -74,16 +91,25 @@ impl Settings {
     }
 
     pub fn save(&self, path: &Path) -> Result<()> {
-        let parent = path.parent().context("配置文件需要父目录")?;
-        fs::create_dir_all(parent)?;
-        let mut file = tempfile::NamedTempFile::new_in(parent)?;
-        serde_json::to_writer_pretty(&mut file, self)?;
-        file.write_all(b"\n")?;
-        File::sync_all(file.as_file())?;
-        file.persist(path)
-            .with_context(|| format!("保存配置 {}", path.display()))?;
-        Ok(())
+        write_json(path, self).with_context(|| format!("保存配置 {}", path.display()))
     }
+}
+
+pub(crate) fn write_json(path: &Path, value: &impl Serialize) -> Result<()> {
+    let mut bytes = serde_json::to_vec_pretty(value)?;
+    bytes.push(b'\n');
+    replace_file(path, &bytes)
+}
+
+pub(crate) fn replace_file(path: &Path, bytes: &[u8]) -> Result<()> {
+    let parent = path.parent().context("路径需要父目录")?;
+    fs::create_dir_all(parent)?;
+    let mut file = tempfile::NamedTempFile::new_in(parent)?;
+    file.write_all(bytes)?;
+    file.as_file().sync_all()?;
+    file.persist(path)
+        .with_context(|| format!("写入 {}", path.display()))?;
+    Ok(())
 }
 
 pub fn read_json<T: DeserializeOwned>(path: &Path) -> Result<T> {

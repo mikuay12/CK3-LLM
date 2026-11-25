@@ -16,7 +16,9 @@ $pending = Join-Path $output ('package-' + [guid]::NewGuid() + '.zip')
 
 Push-Location -LiteralPath $project
 try {
-    $raw = cargo metadata --locked --format-version 1 --filter-platform $Target
+    $features = @()
+    if ($env:CK3_FRIDA_DEVKIT) { $features = @('--features', 'host-bridge') }
+    $raw = cargo metadata --locked --format-version 1 --filter-platform $Target @features
     if ($LASTEXITCODE -ne 0) { throw 'cargo metadata failed' }
     $metadata = $raw | ConvertFrom-Json
 
@@ -24,6 +26,10 @@ try {
     try {
         [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $binary, 'ck3-llm.exe')
         [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $project 'README.md'), 'README.md')
+        if ($env:CK3_FRIDA_DEVKIT) {
+            $fridaLicense = Join-Path $env:CK3_FRIDA_DEVKIT 'COPYING'
+            [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $fridaLicense, 'third-party/frida-core-17.26.2/COPYING')
+        }
         $index = [System.Collections.Generic.List[string]]::new()
         foreach ($crate in $metadata.packages) {
             if (!$crate.source) { continue }

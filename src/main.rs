@@ -3,6 +3,7 @@
 mod desktop;
 
 fn main() -> eframe::Result<()> {
+    let start_host = std::env::args_os().any(|argument| argument == "--start-host");
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1120.0, 780.0])
@@ -12,7 +13,12 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "CK3-LLM",
         options,
-        Box::new(|context| Ok(Box::new(desktop::Desktop::new(&context.egui_ctx)))),
+        Box::new(move |context| {
+            Ok(Box::new(desktop::Desktop::new(
+                &context.egui_ctx,
+                start_host,
+            )))
+        }),
     )
 }
 

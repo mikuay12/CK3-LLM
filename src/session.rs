@@ -15,7 +15,8 @@ use crate::settings::{ConnectionSettings, read_json};
 use native::{Event, NakamaSdk, WireFormat};
 
 pub const CK3_BUILD: &str = "1.20.1.2";
-const EXE_SHA256: &str = "52c4678588c11ef6dd49c815198bc0108134d69699a30b90bc66f080268e8110";
+pub(crate) const EXE_SHA256: &str =
+    "52c4678588c11ef6dd49c815198bc0108134d69699a30b90bc66f080268e8110";
 const PHASE_TIMEOUT: Duration = Duration::from_secs(15);
 const TICK_DELAY: Duration = Duration::from_millis(20);
 const REPORT_DELAY: Duration = Duration::from_millis(200);
