@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CK3 通知设置与 LLM 载荷预览</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, "Microsoft YaHei", sans-serif; background: #151b1a; color: #edf0e8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1140px; margin: 0 auto; padding: 44px 24px 130px; }
+    h1 { margin: 0 0 10px; font-size: 28px; font-weight: 600; letter-spacing: .03em; }
+    p { color: #b8c2b9; line-height: 1.75; margin: 0 0 18px; }
+    button, input, select { font: inherit; }
+    button, select, input[type="search"] { border: 1px solid #46534c; border-radius: 6px; background: #202b26; color: inherit; padding: 9px 13px; }
+    button { cursor: pointer; }
+    button:hover { border-color: #aebf99; }
+    button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid #c6d5a6; outline-offset: 3px; }
+    button:disabled { opacity: .5; cursor: default; }
+    input[type="checkbox"] { accent-color: #d4c299; width: 18px; height: 18px; margin: 2px 0 0; flex-shrink: 0; cursor: pointer; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 16px; border-bottom: 1px solid #324039; padding-bottom: 12px; }
+    .tab-btn { padding: 8px 14px; border-radius: 999px; font-size: 13px; background: #1a231f; border-color: #394840; color: #b9c7bc; }
+    .tab-btn.active { background: #2d3d2f; border-color: #93b07c; color: #eef6e4; font-weight: 600; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+    .toolbar input { flex: 1; min-width: 220px; }
+    .counts { color: #a7b8aa; font-size: 14px; margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+    .counts strong { color: #d9e6c3; }
+    .section-block { margin-bottom: 28px; }
+    .section-header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin: 0 0 12px; padding: 10px 14px; border-left: 4px solid #8ea878; background: #19221e; border-radius: 0 8px 8px 0; }
+    .section-header.top-bar { border-left-color: #d4a85f; }
+    .section-header.side-bar { border-left-color: #6ca4c4; }
+    .section-header.static-only { border-left-color: #7c7f85; }
+    .section-title { font-size: 16px; font-weight: 600; color: #eef3ea; }
+    .section-desc { font-size: 13px; color: #9db0a1; flex: 1; min-width: 220px; }
+    .section-stat { font-size: 12px; color: #c5d6b8; }
+    .group { border: 1px solid #3b4841; border-radius: 8px; margin-bottom: 10px; overflow: hidden; background: #1b2420; }
+    summary { cursor: pointer; padding: 14px 18px; }
+    .group summary { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .group summary::before { content: "+"; color: #cbbb95; font-size: 20px; width: 14px; }
+    .group[open] summary::before { content: "−"; }
+    .group-name { font-size: 16px; flex: 1; min-width: 150px; }
+    .group-count { font-size: 13px; color: #9baa9e; }
+    .group-badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid #3c4d44; background: #202d27; color: #9fb0a2; }
+    .group-badge.active { border-color: #6b8457; background: #243522; color: #cbe2b1; }
+    .group-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #c7cdbf; }
+    .type-list { border-top: 1px solid #344139; }
+    .type-row { border-top: 1px solid #2c3931; }
+    .type-row:first-child { border-top: 0; }
+    .type-head { display: flex; gap: 12px; align-items: flex-start; padding: 13px 18px; }
+    .type-head:hover { background: #233027; }
+    .type-head.muted { color: #8c988e; }
+    .type-check { display: flex; gap: 12px; flex: 1; min-width: 0; cursor: pointer; align-items: flex-start; }
+    .type-text { min-width: 0; flex: 1; }
+    .type-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+    .type-title { overflow-wrap: anywhere; line-height: 1.5; }
+    .type-key { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 12px; color: #91a393; overflow-wrap: anywhere; margin-top: 3px; }
+    .type-brief { font-size: 13px; color: #9eb0a1; margin-top: 3px; line-height: 1.5; }
+    .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid #415048; color: #b9c8bc; background: #222e29; white-space: nowrap; }
+    .tag.loc-top { border-color: #8a6d3b; color: #f0d095; background: #312819; }
+    .tag.loc-side { border-color: #46708a; color: #a9d5ef; background: #1a2933; }
+    .tag.loc-popup { border-color: #5b7f52; color: #c4e8b8; background: #1e2f1e; }
+    .tag.loc-mem { border-color: #5e6c8a; color: #c4d2f0; background: #1f2433; }
+    .tag.inactive { border-color: #5a4c3b; color: #d9bc96; background: #2d251d; }
+    .tag.danger { border-color: #7c4747; color: #f0b6b6; background: #331e1e; }
+    .inspect-btn { font-size: 12px; padding: 5px 10px; border-radius: 5px; background: #1a2420; color: #c7d6be; border-color: #425249; white-space: nowrap; flex-shrink: 0; }
+    .inspect-btn[aria-expanded="true"] { background: #2a392d; border-color: #8ba678; color: #e6f2d9; }
+    .inspector { margin: 0 18px 14px 48px; padding: 14px 16px; border: 1px solid #35453c; border-radius: 8px; background: #131a17; font-size: 13px; line-height: 1.65; }
+    .inspector-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .meta-box { background: #19221e; border: 1px solid #2b3831; border-radius: 6px; padding: 9px 11px; }
+    .meta-label { font-size: 11px; color: #8c9f90; letter-spacing: .04em; margin-bottom: 3px; }
+    .meta-value { color: #dce4da; overflow-wrap: anywhere; }
+    .inspector h4 { margin: 12px 0 6px; font-size: 12px; color: #b7c9b3; font-weight: 600; letter-spacing: .03em; }
+    .payload-pre { margin: 0; padding: 12px; border-radius: 6px; background: #0e1412; border: 1px solid #28352e; overflow-x: auto; font-family: "IBM Plex Mono", Consolas, monospace; font-size: 12px; line-height: 1.55; color: #d2e4cc; }
+    .field-list { margin: 6px 0 0; padding-left: 18px; color: #b5c4b7; }
+    .field-list li { margin-bottom: 4px; }
+    .field-list code { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 12px; color: #d6c89e; background: #1e2823; padding: 1px 5px; border-radius: 4px; }
+    .coverage { margin: 26px 0; border-top: 1px solid #38463d; border-bottom: 1px solid #38463d; }
+    .coverage summary { color: #c5ccbf; padding-left: 0; }
+    .coverage ul { color: #aebcaf; line-height: 1.8; padding-left: 22px; font-size: 14px; }
+    .coverage li { padding-bottom: 8px; }
+    .actions { position: fixed; bottom: 0; left: 0; right: 0; background: #151b1af5; border-top: 1px solid #465349; backdrop-filter: blur(12px); }
+    .actions-inner { max-width: 1140px; margin: 0 auto; display: flex; gap: 12px; align-items: center; padding: 16px 24px; }
+    #save { background: #d3c197; border-color: #d3c197; color: #20271e; font-weight: 600; }
+    #status { flex: 1; color: #b5c6ab; font-size: 14px; line-height: 1.6; }
+    #status.error { color: #f0b6a9; }
+    #empty { color: #b7c5b6; padding: 40px 0; text-align: center; }
+    @media (max-width: 720px) {
+      main { padding-top: 28px; }
+      .toolbar { flex-direction: column; }
+      .group-toggle { margin-left: 30px; }
+      .inspector { margin-left: 14px; margin-right: 14px; }
+      .actions-inner { flex-wrap: wrap; }
+      #status { flex-basis: 100%; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>通知设置与 LLM 载荷预览</h1>
+  <p>勾选要关闭的通知，保存后运行中的虚拟机会自动热重载。下方已按游戏内位置分为<strong>「弹窗与内存状态」</strong>、<strong>「顶部栏通知」</strong>（警报图标 / 局势下拉列表）与<strong>「侧栏消息流 &amp; 横幅」</strong>，点击任意条目右侧可查看发给 LLM 的真实 JSON。</p>
+
+  <div class="tabs" id="section-tabs" role="tablist" aria-label="按游戏界面位置分区">
+    <button type="button" class="tab-btn active" data-section="all">全部显示</button>
+    <button type="button" class="tab-btn" data-section="core">弹窗与内存状态</button>
+    <button type="button" class="tab-btn" data-section="top_bar">顶部栏通知（警报 / 局势列表）</button>
+    <button type="button" class="tab-btn" data-section="side_bar">侧栏消息流 &amp; 横幅</button>
+    <button type="button" class="tab-btn" data-section="static">仅静态目录</button>
+  </div>
+
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="搜索通知名称、ID 或说明（如：围城缺口、siege_breach、继承人）" aria-label="搜索通知">
+    <select id="state-filter" aria-label="开关状态筛选">
+      <option value="all">全部状态</option>
+      <option value="enabled">仅看已开启</option>
+      <option value="disabled">仅看已关闭</option>
+    </select>
+  </div>
+  <div id="counts" class="counts" aria-live="polite">正在读取通知目录…</div>
+  <div id="groups"></div>
+  <div id="empty" hidden>没有匹配的通知</div>
+  <details class="coverage">
+    <summary>底层采集器接入范围与说明</summary>
+    <ul id="coverage"></ul>
+  </details>
+</main>
+<footer class="actions">
+  <div class="actions-inner">
+    <span id="status" role="status" aria-live="polite">正在读取设置…</span>
+    <button id="enable-all" type="button" disabled>全部开启</button>
+    <button id="reload" type="button">重新读取</button>
+    <button id="save" type="button" disabled>保存设置</button>
+  </div>
+</footer>
+<script>
+  const elements = Object.fromEntries(
+    ["search", "state-filter", "section-tabs", "counts", "groups", "empty", "coverage", "status", "save", "reload", "enable-all"]
+      .map(id => [id, document.getElementById(id)])
+  );
+  let catalog = null;
+  let revision = null;
+  let disabledGroups = new Set();
+  let disabledTypes = new Set();
+  let expandedItems = new Set();
+  let activeSection = "all";
+  let dirty = false;
+  let saving = false;
+  let editVersion = 0;
+
+  const SECTIONS = [
+    {
+      id: "core",
+      title: "一、必响应弹窗 & 内存状态监测",
+      desc: "居中事件弹窗、人物信件请求、活动邀请，以及虚拟机直接监控内存产生的军事/角色关键状态变化。",
+      cssClass: ""
+    },
+    {
+      id: "top_bar",
+      title: "二、顶部栏通知（顶部警报图标 & 局势下拉列表）",
+      desc: "对应游戏最顶部的独立警告图标（alert）和点击数字展开的局势提示列表（action），变动极频繁，默认全部关闭，可按需单独挑开。",
+      cssClass: "top-bar"
+    },
+    {
+      id: "side_bar",
+      title: "三、侧栏消息流 & 顶部横幅（游戏消息 player_messages）",
+      desc: "对应游戏右下角侧栏消息流（Feed）与顶部弹出横幅（Toast），按战争、外交、领地、计谋等主题分组。",
+      cssClass: "side-bar"
+    },
+    {
+      id: "static",
+      title: "四、仅静态目录（暂未接入运行时）",
+      desc: "游戏内主动建议目录，当前运行时不会触发，也不消耗 token。",
+      cssClass: "static-only"
+    }
+  ];
+
+  const MILITARY_DETAILS = {
+    "military.siege_breach": {
+      brief: "围城过程中城墙缺口等级上升（effects.breach 增加）时触发；会携带完整围城状态与原生进度/ETA 预估。",
+      trigger: "SiegeNotifications 轮询发现当前围城的 effects.breach 数值大于上次轮询值。",
+      coalesce: "不合并；每次缺口升级均触发一次。",
+      data: {
+        id: 12, province_id: 2214, side: "attacker",
+        title: { id: 451, key: "b_toulouse", name: "图卢兹" },
+        attacker: { id: 65238, name: "威廉" }, defender: { id: 33592, name: "雷蒙德" },
+        progress_points: 18.5, phase_days_remaining: 11, start_date: 770300,
+        effects: { breach: 1, starvation: 0, disease: 0, desertion: 0, stalemate: 0 },
+        projection: { progress_percent: 46.2, daily_progress: 0.9, eta_days: 24, source: "native_shadow_unicorn" }
+      },
+      fields: [
+        ["effects.breach", "当前城墙缺口等级（>0 时允许发动强攻 start_assault）"],
+        ["side", "本方身份：attacker（攻城方）或 defender（守城/被围方）"],
+        ["province_id / title", "围城所在省份编号与男爵领名称"],
+        ["progress_points / phase_days_remaining", "原生围城进度点与当前阶段剩余天数"],
+        ["projection", "ShadowEvaluator 零注入原生求值的百分比、每日进度与预计沦陷天数 ETA"]
+      ]
+    },
+    "military.siege_started": {
+      brief: "本方开始围攻敌城，或己方/封臣领地遭到敌军围城时触发。",
+      trigger: "SiegeNotifications 检测到新增与本角色相关的围城实例。",
+      coalesce: "不合并。",
+      data: {
+        id: 12, province_id: 2214, side: "attacker",
+        title: { id: 451, key: "b_toulouse", name: "图卢兹" },
+        attacker: { id: 65238, name: "威廉" }, defender: { id: 33592, name: "雷蒙德" },
+        progress_points: 0.0, phase_days_remaining: 20,
+        effects: { breach: 0, starvation: 0, disease: 0, desertion: 0, stalemate: 0 },
+        projection: { progress_percent: 0.0, daily_progress: 0.8, eta_days: 50 }
+      },
+      fields: [
+        ["side", "attacker 表示己方攻城，defender 表示己方/封臣城池被围"],
+        ["province_id / title", "围城地点"],
+        ["projection", "预计围城耗时与每日速度"]
+      ]
+    },
+    "military.siege_ended": {
+      brief: "围城攻陷或中途撤围解除时触发，附带该省份最新占领归属。",
+      trigger: "SiegeNotifications 检测到先前围城从活跃列表中消失。",
+      coalesce: "不合并。",
+      data: {
+        siege_id: 12, province_id: 2214, side: "attacker",
+        occupation: { occupying_character_id: 65238, occupying_realm: { id: 100, name: "阿基坦公国" } }
+      },
+      fields: [
+        ["siege_id / province_id", "结束的围城与省份编号"],
+        ["occupation", "该省份结束后的最新占领者（为 null 表示未沦陷/撤围）"]
+      ]
+    },
+    "military.battle_started": {
+      brief: "己方军队与敌军正式接战时触发。",
+      trigger: "DirectNotifications 检测到新增涉及本角色的活跃战斗。",
+      coalesce: "不合并。",
+      data: { id: 88, province_id: 2215, phase: "early", attacker_soldiers: 2400, defender_soldiers: 1900 },
+      fields: [
+        ["id / province_id", "战斗编号与交战省份"],
+        ["phase", "初始战斗阶段"],
+        ["attacker_soldiers / defender_soldiers", "交战双方兵力概况"]
+      ]
+    },
+    "military.battle_phase_changed": {
+      brief: "战斗在早期/主战/追击阶段切换时触发（高频，战斗中无法微操）。",
+      trigger: "DirectNotifications 检测到活跃战斗的 phase 字段变化。",
+      coalesce: "不合并；每场战斗通常会连续触发多次。",
+      data: { id: 88, province_id: 2215, phase: "pursuit", attacker_soldiers: 1850, defender_soldiers: 620 },
+      fields: [["phase", "最新战斗阶段（如 early / main / pursuit）"]]
+    },
+    "military.battle_result": {
+      brief: "战斗结算完成，附带原生战报双方伤亡与胜负。",
+      trigger: "DirectNotifications 读取到新增保留战报（battle_report）。",
+      coalesce: "不合并。",
+      data: { id: 104, province_id: 2215, end_date: "1066.10.3", winner: "attacker", attacker_losses: 312, defender_losses: 980 },
+      fields: [
+        ["winner / end_date", "胜负方与结束日期"],
+        ["attacker_losses / defender_losses", "原生战报双方伤亡人数"]
+      ]
+    },
+    "military.movement_started": {
+      brief: "己方单位从静止变为开始行军（通常是自己刚发 move_unit 的回响）。",
+      trigger: "DirectNotifications 检测到己方 unit 路径从空变为非空。",
+      coalesce: "不合并。",
+      data: { unit: 1006632968, location: 2214, path: [2215, 2220] },
+      fields: [
+        ["unit", "移动单位编号（用于 move_unit / unit_movement）"],
+        ["location / path", "当前省份与计划路径列表"]
+      ]
+    },
+    "military.movement_stopped": {
+      brief: "己方单位抵达目标省份或停驻时触发，适合模型下达下一步行军/围城。",
+      trigger: "DirectNotifications 检测到己方 unit 路径从非空变为空。",
+      coalesce: "已开启合并：未消费前同一 unit 多次停驻仅保留最新一条。",
+      data: { unit: 1006632968, location: 2220, path: [] },
+      fields: [
+        ["unit", "停驻的移动单位编号"],
+        ["location", "最终停驻的省份编号"]
+      ]
+    },
+    "military.retreat_started": {
+      brief: "己方战败进入溃退状态。",
+      trigger: "DirectNotifications 检测到单位进入溃退标记。",
+      coalesce: "不合并。",
+      data: { unit: 1006632968, location: 2215, retreat: true },
+      fields: [["unit / location", "开始溃退的单位与省份"]]
+    },
+    "military.retreat_ended": {
+      brief: "己方单位溃退结束恢复可控。",
+      trigger: "DirectNotifications 检测到单位溃退标记清除。",
+      coalesce: "不合并。",
+      data: { unit: 1006632968, location: 2210, retreat: false },
+      fields: [["unit / location", "恢复可控的单位与省份"]]
+    },
+    "military.war_started": {
+      brief: "本角色加入新战争（宣战、被宣战或应邀参战）。",
+      trigger: "DirectNotifications 检测到角色参与的战争集合新增 war_id。",
+      coalesce: "不合并。",
+      data: { war_id: 687865856 },
+      fields: [["war_id", "新战争编号，可直接配合 query kind=war_theater id=war_id 获取一站式战区简报"]]
+    },
+    "military.war_ended": {
+      brief: "本角色参与的一场战争结束。",
+      trigger: "DirectNotifications 检测到角色参与的战争集合移除 war_id。",
+      coalesce: "不合并。",
+      data: { war_id: 687865856 },
+      fields: [["war_id", "已结束的战争编号"]]
+    }
+  };
+
+  const STATE_DETAILS = {
+    "state.pending_event": {
+      brief: "角色收到新的事件弹窗，必须通过 select_event_option 选择选项。",
+      trigger: "PendingEventNotifications 检测到本角色新增待处理事件。",
+      coalesce: "不合并；每个独立事件弹窗单独推送。",
+      data: { id: 771, character_id: 65238, key: "feast.7002", title: "宴会上的争执", option_count: 3 },
+      fields: [
+        ["id", "事件实例编号，用于 query kind=event / event_options 与 select_event_option"],
+        ["key / title / option_count", "事件键名、标题与原生选项数量"]
+      ]
+    },
+    "state.pending_interaction": {
+      brief: "收到其他角色发来的外交/联姻/赎金/和谈等请求，需通过 reply_character_interaction 回复。",
+      trigger: "PendingInteractionNotifications 检测到待回复请求队列新增条目。",
+      coalesce: "不合并；每个请求单独推送。",
+      data: { id: 1660944390, role: "recipient", interaction: "ransom_interaction", actor: { id: 33592, name: "雷蒙德" }, character_id: 65238 },
+      fields: [
+        ["id", "请求编号，用于 query kind=incoming_interaction 与 reply_character_interaction"],
+        ["interaction / actor", "互动类型与发起人"]
+      ]
+    },
+    "state.activity_invitation": {
+      brief: "收到宴会、狩猎、朝圣等活动邀请，可决定参加或拒绝。",
+      trigger: "ActivityInvitationNotifications 检测到活动邀请列表新增条目。",
+      coalesce: "不合并。",
+      data: { id: 654311459, activity_type: "activity_feast", host: { id: 33592, name: "雷蒙德" }, phase: "passive", character_id: 65238 },
+      fields: [
+        ["id", "活动编号，用于 query kind=activity_invitation 与 join_activity_command / decline_activity_invite_command"],
+        ["activity_type / host", "活动类型与主办者"]
+      ]
+    }
+  };
+
+  function isClosed(item) {
+    return disabledGroups.has(item.group) || disabledTypes.has(item.id);
+  }
+
+  function cleanTemplate(text) {
+    if (!text) return "";
+    return text.replace(/@[A-Za-z0-9_]+!/g, "").replace(/#(?:[A-Za-z0-9_=:.]+|!)\s*/g, "").trim();
+  }
+
+  function locationTag(item) {
+    if (item.namespace === "action") {
+      if (item.action_type === "alert") return { text: "顶部警报图标", cls: "loc-top" };
+      if (item.action_type === "tutorial") return { text: "顶部新手教程", cls: "loc-top" };
+      return { text: "顶部局势下拉", cls: "loc-top" };
+    }
+    if (item.namespace === "message") {
+      if (item.display === "toast") return { text: "顶部横幅 Toast", cls: "loc-side" };
+      if (item.display === "popup") return { text: "消息弹窗 Popup", cls: "loc-side" };
+      return { text: "侧栏消息流", cls: "loc-side" };
+    }
+    if (item.namespace === "suggestion") {
+      return { text: "仅静态目录", cls: "inactive" };
+    }
+    if (["pending_events", "pending_interactions", "activity_invitations"].includes(item.group)) {
+      return { text: "居中/顶部必响应弹窗", cls: "loc-popup" };
+    }
+    return { text: "内存状态直采", cls: "loc-mem" };
+  }
+
+  function describeItem(item) {
+    if (MILITARY_DETAILS[item.id]) {
+      return {
+        producer: item.key.startsWith("siege_") ? "SiegeNotifications (内存围城状态)" : "DirectNotifications (内存军事状态)",
+        wake: "会立即唤醒 wait_for_update",
+        ...MILITARY_DETAILS[item.id]
+      };
+    }
+    if (STATE_DETAILS[item.id]) {
+      return {
+        producer: "待处理交互轮询器 (内存原生队列)",
+        wake: "会立即唤醒 wait_for_update",
+        ...STATE_DETAILS[item.id]
+      };
+    }
+    if (item.namespace === "state") {
+      const sampleBeforeAfter = {
+        "state.character_died": { before: true, after: false },
+        "state.debt_entered": { before: false, after: true },
+        "state.debt_cleared": { before: true, after: false },
+        "state.stress_level_changed": { before: 0, after: 1 },
+        "state.titles_changed": { before: [450, 451], after: [450, 451, 452] },
+        "state.primary_title_changed": { before: 450, after: 100 },
+        "state.liege_changed": { before: 1024, after: null },
+        "state.succession_changed": { before: [70001, 70002], after: [70002, 70001] },
+        "state.laws_changed": { before: ["crown_authority_1"], after: ["crown_authority_2"] },
+        "state.traits_changed": { before: ["brave", "diligent"], after: ["brave", "diligent", "wounded"] }
+      }[item.id] || { before: "<变更前的值>", after: "<变更后的值>" };
+      return {
+        producer: "CharacterStateNotifications (角色状态对比)",
+        wake: "会立即唤醒 wait_for_update",
+        brief: `角色状态项「${item.label}」发生语义变化时触发，仅发送变更前后的 diff。`,
+        trigger: "每轮对比角色关键属性快照，与上次不同时生成。",
+        coalesce: "已开启合并：未消费前多次同类变化自动合并为「最早 before → 最新 after」；若恢复原值则自动抵消。",
+        data: sampleBeforeAfter,
+        fields: [
+          ["before", "变化前的原生值/列表"],
+          ["after", "变化后的最新原生值/列表"]
+        ]
+      };
+    }
+    if (item.namespace === "message") {
+      const slot = item.display === "toast" ? "顶部横幅 Toast" : item.display === "popup" ? "消息弹窗" : "右下角侧栏消息流";
+      const brief = item.human_note || cleanTemplate(item.description_template) || `游戏原生消息「${item.label}」（${slot}），到达生效日期后投递。`;
+      return {
+        producer: `PlayerMessageNotifications (原生角色消息队列 · ${slot})`,
+        wake: "会立即唤醒 wait_for_update",
+        brief,
+        trigger: `游戏向本角色原生消息队列写入 type=${item.key} 且到达 arrival_date 时触发。`,
+        coalesce: "已开启合并：同日多条相同 notification_id 消息会合并为 {count, items:[...]}。",
+        data: {
+          id: 9021, type: item.key, filter: item.filter || "default",
+          arrival_date: "1066.9.15", title: item.title_template || item.label,
+          character_id: 65238
+        },
+        fields: [
+          ["type / filter", `消息类型 (${item.key}) 与游戏内过滤类别 (${item.filter_label || item.filter || "default"})`],
+          ["title / arrival_date", "消息标题键或文本与到达日期"],
+          ["items（合并时）", "同日多条同类消息合并后转为 {count, items} 列表"]
+        ]
+      };
+    }
+    if (item.namespace === "action") {
+      const slot = item.action_type === "alert" ? "顶部独立警报图标" : item.action_type === "tutorial" ? "顶部新手教程提示" : "顶部局势下拉列表";
+      return {
+        producer: `ImportantActionNotifications (${slot})`,
+        wake: "会立即唤醒 wait_for_update（高频噪音源）",
+        brief: cleanTemplate(item.description_template) || `游戏${slot}条目「${item.label}」，出现、变动或消失时都会触发。`,
+        trigger: "轮询活跃重要提示或收到 create_important_action 命令时生成 alert_added / alert_updated / alert_removed。",
+        coalesce: "单次轮询内按 (类型, 变动方式) 聚合为 {count, items}；但跨轮询出现/消失仍会反复唤醒模型。",
+        data: {
+          count: 1,
+          items: [{ id: 501, type: item.key, character_id: 65238, scope: { root: { type: "character", id: 65238 } } }]
+        },
+        fields: [
+          ["type", "事件类型会是 alert_added / alert_updated / alert_removed"],
+          ["count / items", "本次变动涉及的提示条目与作用域对象"],
+          ["action_type / dangerous", `原生位置：${slot}，危险标记：${item.dangerous ? "是" : "否"}`]
+        ]
+      };
+    }
+    return {
+      producer: "仅收录静态目录（运行时暂未接入）",
+      wake: "当前不会触发，也不会消耗 token",
+      brief: cleanTemplate(item.description_template) || "CK3 主动建议静态目录条目，目前运行时尚未接入采集器。",
+      trigger: "暂未接入运行时来源。",
+      coalesce: "不适用。",
+      data: { suggestion: item.key },
+      fields: [["说明", "该分组目前仅作为静态目录展示，开关状态暂不影响运行消耗"]]
+    };
+  }
+
+  function buildLlmPayload(item, info) {
+    const eventType = item.namespace === "message"
+      ? "player_message"
+      : item.namespace === "action"
+        ? "alert_added"
+        : item.key;
+    const eventObj = {
+      event: "game_notification",
+      id: "a1b2c3d4e5f6.42",
+      type: eventType,
+      notification_id: item.id,
+      group: item.group,
+      summary: item.label,
+      date: "1066.9.15",
+      character_id: 65238,
+      data: info.data
+    };
+    return {
+      role: "user",
+      content: {
+        event: "environment_updates",
+        events: [eventObj],
+        omitted_count: 0,
+        pending_count: 0
+      }
+    };
+  }
+
+  function buildVisualGroups() {
+    const byPolicyGroup = new Map();
+    for (const item of catalog.items) {
+      if (!byPolicyGroup.has(item.group)) byPolicyGroup.set(item.group, []);
+      byPolicyGroup.get(item.group).push(item);
+    }
+    const visual = [];
+    for (const group of catalog.groups) {
+      const items = byPolicyGroup.get(group.id) || [];
+      if (!items.length) continue;
+      if (group.id === "important_actions") {
+        const buckets = [
+          { key: "top_alerts", label: "顶部独立警报图标（Alert）", items: items.filter(i => i.action_type === "alert") },
+          { key: "top_actions_danger", label: "顶部局势下拉列表 · 高危警告", items: items.filter(i => i.action_type === "action" && i.dangerous) },
+          { key: "top_actions_normal", label: "顶部局势下拉列表 · 常规提示", items: items.filter(i => i.action_type === "action" && !i.dangerous) },
+          { key: "top_tutorial", label: "顶部新手教程提示", items: items.filter(i => i.action_type === "tutorial") }
+        ];
+        const covered = new Set(buckets.flatMap(b => b.items.map(i => i.id)));
+        const rest = items.filter(i => !covered.has(i.id));
+        if (rest.length) buckets.push({ key: "top_other", label: "顶部栏 · 其他", items: rest });
+        for (const bucket of buckets) {
+          if (bucket.items.length) {
+            visual.push({
+              key: bucket.key,
+              section: "top_bar",
+              policyGroup: "important_actions",
+              label: bucket.label,
+              items: bucket.items,
+              policyGroupItems: items
+            });
+          }
+        }
+        continue;
+      }
+      const first = items[0];
+      let section = "side_bar";
+      if (first.namespace === "military" || first.namespace === "state") section = "core";
+      else if (first.namespace === "suggestion") section = "static";
+      visual.push({
+        key: group.id,
+        section,
+        policyGroup: group.id,
+        label: group.label,
+        items,
+        policyGroupItems: items
+      });
+    }
+    return visual;
+  }
+
+  function setItemsClosed(targetItems, policyGroup, policyGroupItems, closed) {
+    if (disabledGroups.has(policyGroup)) {
+      disabledGroups.delete(policyGroup);
+      for (const entry of policyGroupItems) disabledTypes.add(entry.id);
+    }
+    for (const entry of targetItems) {
+      if (closed) disabledTypes.add(entry.id);
+      else disabledTypes.delete(entry.id);
+    }
+    if (policyGroupItems.every(entry => disabledTypes.has(entry.id))) {
+      disabledGroups.add(policyGroup);
+      for (const entry of policyGroupItems) disabledTypes.delete(entry.id);
+    }
+  }
+
+  function status(message, error = false) {
+    elements.status.textContent = message;
+    elements.status.classList.toggle("error", error);
+  }
+
+  function changed() {
+    dirty = true;
+    editVersion += 1;
+    elements.save.disabled = saving;
+    status("有未保存的更改");
+  }
+
+  function counts() {
+    const closed = catalog.items.filter(isClosed).length;
+    const enabled = catalog.items.length - closed;
+    elements.counts.innerHTML =
+      `<span>共 <strong>${catalog.items.length}</strong> 种通知</span>` +
+      `<span>已开启 <strong>${enabled}</strong> 种</span>` +
+      `<span>已关闭 <strong>${closed}</strong> 种</span>` +
+      `<span>单条超过 1200 字符自动折叠为 <code>details_query</code></span>`;
+  }
+
+  function createInspector(item) {
+    const info = describeItem(item);
+    const payload = buildLlmPayload(item, info);
+    const compactLen = JSON.stringify(payload.content.events[0]).length;
+    const box = document.createElement("div");
+    box.className = "inspector";
+
+    const grid = document.createElement("div");
+    grid.className = "inspector-grid";
+    const metaRows = [
+      ["采集来源与位置", info.producer],
+      ["唤醒机制", info.wake],
+      ["触发条件", info.trigger],
+      ["合并与去重", info.coalesce]
+    ];
+    for (const [label, value] of metaRows) {
+      const cell = document.createElement("div");
+      cell.className = "meta-box";
+      const l = document.createElement("div");
+      l.className = "meta-label";
+      l.textContent = label;
+      const v = document.createElement("div");
+      v.className = "meta-value";
+      v.textContent = value;
+      cell.append(l, v);
+      grid.append(cell);
+    }
+    box.append(grid);
+
+    if (item.title_template || item.description_template) {
+      const tplHeading = document.createElement("h4");
+      tplHeading.textContent = "游戏原生本地化模板";
+      const tplText = document.createElement("div");
+      tplText.className = "meta-value";
+      const parts = [];
+      if (item.title_template) parts.push(`标题模板：${item.title_template}`);
+      if (item.description_template) parts.push(`正文模板：${cleanTemplate(item.description_template)}`);
+      tplText.textContent = parts.join(" ｜ ");
+      box.append(tplHeading, tplText);
+    }
+
+    const jsonHeading = document.createElement("h4");
+    jsonHeading.textContent = `发给 LLM 的实际消息格式示例（精简后单条约 ${compactLen} 字符；>1200 字符自动剥离 data 改发 details_query）`;
+    const pre = document.createElement("pre");
+    pre.className = "payload-pre";
+    pre.textContent = JSON.stringify(payload, null, 2);
+    box.append(jsonHeading, pre);
+
+    if (info.fields && info.fields.length) {
+      const fieldsHeading = document.createElement("h4");
+      fieldsHeading.textContent = "关键载荷字段含义";
+      const ul = document.createElement("ul");
+      ul.className = "field-list";
+      for (const [name, desc] of info.fields) {
+        const li = document.createElement("li");
+        const code = document.createElement("code");
+        code.textContent = name;
+        li.append(code, `：${desc}`);
+        ul.append(li);
+      }
+      box.append(fieldsHeading, ul);
+    }
+    return box;
+  }
+
+  function render() {
+    if (!catalog) return;
+    const search = elements.search.value.trim().toLocaleLowerCase();
+    const stateFilter = elements["state-filter"].value;
+    const openGroups = new Set([...elements.groups.querySelectorAll("details[open]")].map(group => group.dataset.group));
+    const visualGroups = buildVisualGroups();
+    const fragment = document.createDocumentFragment();
+    let visibleCount = 0;
+
+    for (const section of SECTIONS) {
+      if (activeSection !== "all" && activeSection !== section.id) continue;
+      const sectionGroups = visualGroups.filter(g => g.section === section.id);
+      const renderedGroups = [];
+      let sectionTotal = 0;
+      let sectionEnabled = 0;
+
+      for (const group of sectionGroups) {
+        sectionTotal += group.items.length;
+        const enabledInGroup = group.items.filter(item => !isClosed(item)).length;
+        sectionEnabled += enabledInGroup;
+
+        const matched = group.items.filter(item => {
+          const closed = isClosed(item);
+          if (stateFilter === "enabled" && closed) return false;
+          if (stateFilter === "disabled" && !closed) return false;
+          if (!search) return true;
+          const haystack = `${item.label} ${item.id} ${item.human_note || ""} ${item.filter_label || ""} ${item.description_template || ""} ${item.title_template || ""}`.toLocaleLowerCase();
+          return haystack.includes(search);
+        });
+        if (!matched.length) continue;
+        visibleCount += matched.length;
+
+        const closedInGroup = group.items.length - enabledInGroup;
+        const details = document.createElement("details");
+        details.className = "group";
+        details.dataset.group = group.key;
+        details.open = Boolean(search) || stateFilter === "enabled" || openGroups.has(group.key);
+
+        const summary = document.createElement("summary");
+        const title = document.createElement("span");
+        title.className = "group-name";
+        title.textContent = group.label;
+
+        const badge = document.createElement("span");
+        badge.className = "group-badge" + (enabledInGroup > 0 ? " active" : "");
+        badge.textContent = `已开启 ${enabledInGroup} / ${group.items.length}`;
+
+        const count = document.createElement("span");
+        count.className = "group-count";
+        count.textContent = matched.length === group.items.length ? `${matched.length} 种` : `匹配 ${matched.length} / ${group.items.length} 种`;
+
+        const groupLabel = document.createElement("label");
+        groupLabel.className = "group-toggle";
+        groupLabel.addEventListener("click", event => event.stopPropagation());
+        const groupCheckbox = document.createElement("input");
+        groupCheckbox.type = "checkbox";
+        groupCheckbox.checked = closedInGroup === group.items.length;
+        groupCheckbox.indeterminate = closedInGroup > 0 && closedInGroup < group.items.length;
+        groupCheckbox.setAttribute("aria-label", `全选关闭${group.label}`);
+        groupCheckbox.addEventListener("change", () => {
+          setItemsClosed(group.items, group.policyGroup, group.policyGroupItems, groupCheckbox.checked);
+          changed();
+          render();
+        });
+        groupLabel.append(groupCheckbox, "全选关闭");
+        summary.append(title, badge, count, groupLabel);
+
+        const list = document.createElement("div");
+        list.className = "type-list";
+        for (const item of matched) {
+          const row = document.createElement("div");
+          row.className = "type-row";
+
+          const head = document.createElement("div");
+          head.className = "type-head";
+          head.classList.toggle("muted", isClosed(item));
+
+          const checkLabel = document.createElement("label");
+          checkLabel.className = "type-check";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = isClosed(item);
+          checkbox.setAttribute("aria-label", `关闭 ${item.label}`);
+          checkbox.addEventListener("change", () => {
+            setItemsClosed([item], group.policyGroup, group.policyGroupItems, checkbox.checked);
+            changed();
+            counts();
+            head.classList.toggle("muted", isClosed(item));
+            const updatedEnabled = group.items.filter(entry => !isClosed(entry)).length;
+            const updatedClosed = group.items.length - updatedEnabled;
+            badge.textContent = `已开启 ${updatedEnabled} / ${group.items.length}`;
+            badge.className = "group-badge" + (updatedEnabled > 0 ? " active" : "");
+            groupCheckbox.checked = updatedClosed === group.items.length;
+            groupCheckbox.indeterminate = updatedClosed > 0 && updatedClosed < group.items.length;
+          });
+
+          const text = document.createElement("div");
+          text.className = "type-text";
+          const titleLine = document.createElement("div");
+          titleLine.className = "type-title-line";
+
+          const name = document.createElement("span");
+          name.className = "type-title";
+          name.textContent = item.label;
+          titleLine.append(name);
+
+          const loc = locationTag(item);
+          const locSpan = document.createElement("span");
+          locSpan.className = "tag " + loc.cls;
+          locSpan.textContent = loc.text;
+          titleLine.append(locSpan);
+
+          if (item.dangerous) {
+            const dangerTag = document.createElement("span");
+            dangerTag.className = "tag danger";
+            dangerTag.textContent = "高危提示";
+            titleLine.append(dangerTag);
+          }
+
+          const key = document.createElement("div");
+          key.className = "type-key";
+          key.textContent = item.id;
+
+          const info = describeItem(item);
+          const brief = document.createElement("div");
+          brief.className = "type-brief";
+          brief.textContent = info.brief;
+
+          text.append(titleLine, key, brief);
+          checkLabel.append(checkbox, text);
+
+          const inspectBtn = document.createElement("button");
+          inspectBtn.type = "button";
+          inspectBtn.className = "inspect-btn";
+          const isExpanded = expandedItems.has(item.id);
+          inspectBtn.setAttribute("aria-expanded", String(isExpanded));
+          inspectBtn.textContent = isExpanded ? "收起 LLM 内容" : "查看发给 LLM 的内容";
+          inspectBtn.addEventListener("click", () => {
+            if (expandedItems.has(item.id)) {
+              expandedItems.delete(item.id);
+              inspectBtn.setAttribute("aria-expanded", "false");
+              inspectBtn.textContent = "查看发给 LLM 的内容";
+              const existing = row.querySelector(".inspector");
+              if (existing) existing.remove();
+            } else {
+              expandedItems.add(item.id);
+              inspectBtn.setAttribute("aria-expanded", "true");
+              inspectBtn.textContent = "收起 LLM 内容";
+              row.append(createInspector(item));
+            }
+          });
+
+          head.append(checkLabel, inspectBtn);
+          row.append(head);
+          if (isExpanded) row.append(createInspector(item));
+          list.append(row);
+        }
+
+        details.append(summary, list);
+        renderedGroups.push(details);
+      }
+
+      if (!renderedGroups.length) continue;
+      const sectionEl = document.createElement("section");
+      sectionEl.className = "section-block";
+      const header = document.createElement("div");
+      header.className = "section-header " + section.cssClass;
+      const hTitle = document.createElement("span");
+      hTitle.className = "section-title";
+      hTitle.textContent = section.title;
+      const hStat = document.createElement("span");
+      hStat.className = "section-stat";
+      hStat.textContent = `已开启 ${sectionEnabled} / ${sectionTotal}`;
+      const hDesc = document.createElement("span");
+      hDesc.className = "section-desc";
+      hDesc.textContent = section.desc;
+      header.append(hTitle, hStat, hDesc);
+      sectionEl.append(header, ...renderedGroups);
+      fragment.append(sectionEl);
+    }
+
+    elements.groups.replaceChildren(fragment);
+    elements.empty.hidden = visibleCount > 0;
+    counts();
+  }
+
+  async function load() {
+    elements.reload.disabled = true;
+    elements.save.disabled = true;
+    try {
+      const response = await fetch("/api/settings");
+      if (!response.ok) throw new Error("读取设置失败");
+      const data = await response.json();
+      catalog = data;
+      revision = data.revision;
+      disabledGroups = new Set(data.policy.disabled_groups);
+      disabledTypes = new Set(data.policy.disabled_types);
+      dirty = false;
+      elements.coverage.replaceChildren(...Object.values(data.coverage).map(text => {
+        const item = document.createElement("li");
+        item.textContent = text;
+        return item;
+      }));
+      elements["enable-all"].disabled = false;
+      status(data.error ? `配置读取错误，当前显示最后有效设置。${data.error}` : "已读取保存的设置", Boolean(data.error));
+      render();
+    } catch (error) {
+      status(error.message, true);
+      elements.save.disabled = !dirty;
+    } finally {
+      elements.reload.disabled = false;
+    }
+  }
+
+  elements["section-tabs"].addEventListener("click", event => {
+    const button = event.target.closest(".tab-btn");
+    if (!button) return;
+    activeSection = button.dataset.section;
+    for (const tab of elements["section-tabs"].querySelectorAll(".tab-btn")) {
+      tab.classList.toggle("active", tab === button);
+    }
+    render();
+  });
+  elements.search.addEventListener("input", render);
+  elements["state-filter"].addEventListener("change", render);
+  elements.reload.addEventListener("click", load);
+  elements["enable-all"].addEventListener("click", () => {
+    disabledGroups.clear();
+    disabledTypes.clear();
+    changed();
+    render();
+  });
+  elements.save.addEventListener("click", async () => {
+    saving = true;
+    elements.save.disabled = true;
+    elements.reload.disabled = true;
+    const savingVersion = editVersion;
+    try {
+      const response = await fetch("/api/policy", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          revision,
+          policy: { version: 1, disabled_groups: [...disabledGroups], disabled_types: [...disabledTypes] }
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(response.status === 409 ? "设置已被另一页面修改。重新读取后再保存。" : data.error);
+      }
+      revision = data.revision;
+      dirty = editVersion !== savingVersion;
+      status(dirty ? "先前的设置已保存，仍有新的更改待保存" : "已保存，虚拟机会自动应用");
+    } catch (error) {
+      status(error.message, true);
+    } finally {
+      saving = false;
+      elements.reload.disabled = false;
+      elements.save.disabled = !dirty;
+    }
+  });
+  window.addEventListener("beforeunload", event => {
+    if (dirty) event.preventDefault();
+  });
+  load();
+</script>
+</body>
+</html>

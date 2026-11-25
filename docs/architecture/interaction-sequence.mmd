@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant M as 大模型
+    participant V as 虚拟机接口
+    participant N as 联机接口
+    participant G as 真实 CK3
+
+    M->>V: game_query 查询状态、待办和操作参数
+    V->>G: ReadProcessMemory 读取原生信息
+    G-->>V: 状态与已生成缓存
+    V-->>M: 有预算的查询结果
+
+    M->>M: 自主决定行动和参数
+    M->>V: game_action 动作、参数、request_id
+    V->>V: 校验参数、检查重复请求
+    V->>N: 编码后的原生命令
+    N->>G: 经房间转发命令
+    G->>G: 原生规则校验与执行
+    G-->>N: 命令回传
+    N-->>V: host_echoed
+    V-->>M: 操作交付反馈
+
+    M->>V: game_query 核对行动结果
+    V->>G: 读取最新世界状态
+    G-->>V: 资源、事件或单位等实际变化
+    V-->>M: 返回结果，继续下一次决策
