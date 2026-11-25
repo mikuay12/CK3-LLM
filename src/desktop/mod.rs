@@ -3,6 +3,7 @@ mod host;
 mod memory;
 mod model;
 mod style;
+mod world;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -15,6 +16,7 @@ use eframe::egui::{self, Align, Button, Frame, Layout, Margin, RichText, ScrollA
 enum Page {
     Host,
     Connection,
+    World,
     Model,
     Chat,
     Memory,
@@ -25,6 +27,7 @@ impl Page {
         match self {
             Self::Host => "本地房主",
             Self::Connection => "房间连接",
+            Self::World => "世界快照",
             Self::Model => "模型设置",
             Self::Chat => "模型对话",
             Self::Memory => "记忆",
@@ -39,6 +42,7 @@ pub struct Desktop {
     settings_feedback: Option<(bool, String)>,
     host: host::HostPage,
     connection: connection::ConnectionPage,
+    world: world::WorldPage,
     model: model::ModelPage,
     memory: memory::MemoryPage,
 }
@@ -53,6 +57,7 @@ impl Desktop {
             settings_feedback: None,
             host: host::HostPage::default(),
             connection: connection::ConnectionPage::default(),
+            world: world::WorldPage::default(),
             model: model::ModelPage::default(),
             memory: memory::MemoryPage::open(),
         };
@@ -97,6 +102,7 @@ impl Desktop {
                 for page in [
                     Page::Host,
                     Page::Connection,
+                    Page::World,
                     Page::Model,
                     Page::Chat,
                     Page::Memory,
@@ -142,7 +148,8 @@ impl eframe::App for Desktop {
         }
         self.connection.poll();
         self.model.poll();
-        if self.host.busy() || self.connection.busy() || self.model.busy() {
+        self.world.poll();
+        if self.host.busy() || self.connection.busy() || self.model.busy() || self.world.busy() {
             context.request_repaint_after(Duration::from_millis(60));
         }
         self.navigation(context);
@@ -187,6 +194,7 @@ impl eframe::App for Desktop {
                             Page::Connection => {
                                 self.connection.show(ui, &mut self.settings.connection)
                             }
+                            Page::World => self.world.show(ui),
                             Page::Model => self.model.show_settings(ui, &mut self.settings.model),
                             Page::Chat => {
                                 self.model.show_chat(ui, &self.settings.model, &self.memory)

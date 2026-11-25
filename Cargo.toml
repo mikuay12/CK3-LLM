@@ -26,6 +26,7 @@ sha2 = "0.10"
 tempfile = "3.15"
 tokio = { version = "1.48", features = ["macros", "net", "rt", "sync", "time"] }
 uuid = { version = "1", features = ["v4", "v5"] }
+zip = { version = "4.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 tungstenite = { version = "0.28", default-features = false, features = ["handshake"] }
