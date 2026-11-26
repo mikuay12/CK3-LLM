@@ -1,5 +1,6 @@
 param(
-    [string]$Target = 'x86_64-pc-windows-msvc'
+    [string]$Target = 'x86_64-pc-windows-msvc',
+    [string]$UnicornDirectory = $env:CK3_UNICORN_DIR
 )
 
 $ErrorActionPreference = 'Stop'
@@ -8,6 +9,8 @@ $binary = Join-Path $project "target/$Target/release/ck3-llm.exe"
 if (!(Test-Path -LiteralPath $binary -PathType Leaf)) {
     throw "Build the release executable first at $binary"
 }
+if (!$UnicornDirectory) { $UnicornDirectory = Join-Path $project 'target/unicorn-2.1.4' }
+$unicorn = & (Join-Path $PSScriptRoot 'prepare-unicorn.ps1') -Directory $UnicornDirectory
 
 $output = Join-Path $project 'dist'
 New-Item -ItemType Directory -Force -Path $output | Out-Null
@@ -26,11 +29,16 @@ try {
     try {
         [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $binary, 'ck3-llm.exe')
         [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $project 'README.md'), 'README.md')
+        [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $unicorn 'unicorn.dll'), 'unicorn.dll')
+        foreach ($file in @('COPYING', 'unicorn-2.1.4.tar.gz')) {
+            [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $unicorn $file), "third-party/unicorn-2.1.4/$file")
+        }
         if ($env:CK3_FRIDA_DEVKIT) {
             $fridaLicense = Join-Path $env:CK3_FRIDA_DEVKIT 'COPYING'
             [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $fridaLicense, 'third-party/frida-core-17.26.2/COPYING')
         }
         $index = [System.Collections.Generic.List[string]]::new()
+        $index.Add('unicorn-2.1.4  GPL-2.0 with upstream source archive')
         foreach ($crate in $metadata.packages) {
             if (!$crate.source) { continue }
             $name = "$($crate.name)-$($crate.version)"

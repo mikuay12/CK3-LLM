@@ -3,7 +3,7 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
 
 use ck3_llm::model::{self, Message, Reply, Role};
-use ck3_llm::settings::{ModelSettings, read_json};
+use ck3_llm::settings::{ModalGate, ModelOutput, ModelSettings, read_json};
 use ck3_llm::world::QuerySource;
 use eframe::egui::{Button, DragValue, RichText, ScrollArea, TextEdit, Ui};
 
@@ -32,6 +32,10 @@ pub struct ModelPage {
 }
 
 impl ModelPage {
+    pub fn api_key(&self) -> &str {
+        &self.api_key
+    }
+
     pub fn busy(&self) -> bool {
         self.pending.is_some()
     }
@@ -104,6 +108,36 @@ impl ModelPage {
                     .desired_width(f32::INFINITY)
                     .desired_rows(3),
             );
+            ui.collapsing("自动游玩参数", |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("空闲等待");
+                    ui.add(
+                        DragValue::new(&mut settings.idle_seconds)
+                            .speed(1)
+                            .suffix(" 秒"),
+                    );
+                    ui.label("单次查询字符数");
+                    ui.add(DragValue::new(&mut settings.max_query_chars).speed(100));
+                    ui.label("上下文字符数");
+                    ui.add(DragValue::new(&mut settings.context_chars).speed(1_000));
+                });
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("待处理事务");
+                    ui.selectable_value(&mut settings.modal_gate, ModalGate::Off, "不限操作");
+                    ui.selectable_value(&mut settings.modal_gate, ModalGate::NoWait, "处理后等待");
+                    ui.selectable_value(&mut settings.modal_gate, ModalGate::Strict, "优先处理");
+                });
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("工具返回格式");
+                    ui.selectable_value(&mut settings.response_format, ModelOutput::Json, "JSON");
+                    ui.selectable_value(
+                        &mut settings.response_format,
+                        ModelOutput::CompactText,
+                        "简明文本",
+                    );
+                    ui.checkbox(&mut settings.fold_old_tool_results, "折叠早期工具结果");
+                });
+            });
             ui.add_space(6.0);
             ui.horizontal_wrapped(|ui| {
                 if ui

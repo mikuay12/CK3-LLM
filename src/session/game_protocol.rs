@@ -109,6 +109,7 @@ pub fn disconnect(kind: u8, reason: u32) -> Vec<u8> {
 
 pub struct Incoming<'a> {
     pub kind: u16,
+    name: String,
     bytes: &'a [u8],
     header: Index,
     body: Index,
@@ -120,19 +121,65 @@ impl<'a> Incoming<'a> {
         let kind = u16::from_le_bytes(raw.try_into().unwrap());
         let root = binary::index(bytes, 0..bytes.len(), false)?;
         ensure!(root.len() == 1, "游戏命令需要一个顶层对象");
-        let sections = binary::index(
-            bytes,
-            only(root.values().next().context("游戏命令为空")?)?,
-            true,
-        )?;
+        let (name, spans) = root.into_iter().next().context("游戏命令为空")?;
+        let sections = binary::index(bytes, only(&spans)?, true)?;
         let header = fields(bytes, &sections, "default_state")?;
         let body = fields(bytes, &sections, "object")?;
         Ok(Self {
             kind,
+            name,
             bytes,
             header,
             body,
         })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn identity(&self) -> Result<u32> {
+        let value = binary::decode(self.bytes, lookup(&self.header, "identity")?)?;
+        Ok(u32::try_from(value.as_u64().context("命令编号无效")?)?)
+    }
+
+    pub fn describe(&self) -> Result<Value> {
+        Ok(serde_json::json!({
+            "name": self.name,
+            "default_state": self.decode_fields(&self.header)?,
+            "fields": self.decode_fields(&self.body)?,
+        }))
+    }
+
+    fn decode_fields(&self, index: &Index) -> Result<serde_json::Map<String, Value>> {
+        index
+            .iter()
+            .map(|(field, spans)| {
+                let value = if field == "data"
+                    && let [span] = spans.as_slice()
+                    && let Ok(blob) = binary::blob(self.bytes, span.clone())
+                {
+                    serde_json::json!({"bytes": blob.len()})
+                } else if let [span] = spans.as_slice() {
+                    binary::decode(self.bytes, span.clone())?
+                } else {
+                    Value::Array(
+                        spans
+                            .iter()
+                            .cloned()
+                            .map(|span| binary::decode(self.bytes, span))
+                            .collect::<Result<_>>()?,
+                    )
+                };
+                Ok((field.clone(), value))
+            })
+            .collect()
+    }
+
+    pub fn list<T>(&self, name: &str, number: impl Fn(Value) -> Result<T>) -> Result<Vec<T>> {
+        let mut value = self.get(name)?;
+        let values = value.as_array_mut().context("命令字段需要数组")?;
+        values.drain(..).map(number).collect()
     }
 
     pub fn sender(&self) -> Result<i32> {
@@ -191,7 +238,7 @@ fn only(spans: &[Span]) -> Result<Span> {
     bail!("游戏命令字段重复")
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TransferInfo {
     pub filename: String,
     pub size: u32,

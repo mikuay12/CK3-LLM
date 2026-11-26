@@ -60,6 +60,21 @@ impl NotificationsPage {
         }
     }
 
+    pub fn record_live(&mut self, mut notices: Vec<Notice>) {
+        notices.retain(|notice| {
+            !self
+                .notices
+                .iter()
+                .any(|entry| entry.kind == notice.kind && entry.text == notice.text)
+        });
+        if let Err(error) = history_path().and_then(|path| append_history(&path, &notices)) {
+            self.feedback = Some((false, format!("写入通知记录失败 · {error:#}")));
+        }
+        self.notices.extend(notices);
+        self.notices
+            .drain(..self.notices.len().saturating_sub(HISTORY_LIMIT));
+    }
+
     pub fn poll(&mut self, game: Option<&Arc<LiveWorld>>) {
         while let Some(task) = &self.watch {
             if !game.is_some_and(|game| task.attached_to(game)) {
@@ -70,14 +85,7 @@ impl NotificationsPage {
             match task.try_recv() {
                 Ok(Ok(notices)) => {
                     self.watch_error = None;
-                    if let Err(error) =
-                        history_path().and_then(|path| append_history(&path, &notices))
-                    {
-                        self.feedback = Some((false, format!("写入通知记录失败 · {error:#}")));
-                    }
-                    self.notices.extend(notices);
-                    self.notices
-                        .drain(..self.notices.len().saturating_sub(HISTORY_LIMIT));
+                    self.record_live(notices);
                 }
                 Ok(Err(error)) => self.watch_error = Some(error),
                 Err(TryRecvError::Empty) => break,

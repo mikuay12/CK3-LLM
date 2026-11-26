@@ -114,6 +114,17 @@ impl Store {
     }
 
     pub fn add(&mut self, scope: Scope, category: Category, content: &str) -> Result<()> {
+        self.remember(scope, category, content, "player")?;
+        Ok(())
+    }
+
+    pub(crate) fn remember(
+        &mut self,
+        scope: Scope,
+        category: Category,
+        content: &str,
+        source: &str,
+    ) -> Result<Entry> {
         let content = normalized(content)?;
         if let Some(entry) = self
             .items
@@ -122,19 +133,20 @@ impl Store {
         {
             entry.category = category;
             entry.enabled = true;
-            return Ok(());
+            return Ok(entry.clone());
         }
         let mut extra = Map::new();
-        extra.insert("source".into(), Value::String("player".into()));
-        self.items.push(Entry {
+        extra.insert("source".into(), Value::String(source.into()));
+        let entry = Entry {
             id: Uuid::new_v4().simple().to_string(),
             scope,
             category,
             content,
             enabled: true,
             extra,
-        });
-        Ok(())
+        };
+        self.items.push(entry.clone());
+        Ok(entry)
     }
 
     pub fn import(&mut self, path: &Path) -> Result<usize> {

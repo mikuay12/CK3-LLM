@@ -27,6 +27,7 @@ pub(super) struct Process {
     handle: OwnedHandle,
     pub pid: u32,
     pub base: u64,
+    pub game_dir: PathBuf,
 }
 
 impl Process {
@@ -64,7 +65,17 @@ impl Process {
             "实时查询需要已验证的 CK3 {CK3_BUILD}"
         );
         let base = game_base(pid)?;
-        let process = Self { handle, pid, base };
+        let game_dir = image
+            .parent()
+            .and_then(|bin| bin.parent())
+            .context("无法定位游戏安装目录")?
+            .to_owned();
+        let process = Self {
+            handle,
+            pid,
+            base,
+            game_dir,
+        };
         ensure!(process.is_running(), "CK3 进程已退出");
         Ok(process)
     }

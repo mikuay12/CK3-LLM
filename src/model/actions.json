@@ -1,0 +1,2367 @@
+{
+  "accept_task_contract": {
+    "id": "accept_task_contract",
+    "label": "接受任务委托",
+    "entry_point": "send_game_command",
+    "command_type": "accept_task_contract",
+    "parameters": {
+      "task_contract": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "任务委托实例编号，可用 task_contracts 查询",
+        "default": 4294967295
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "add_construction": {
+    "id": "add_construction",
+    "label": "建造或升级地产建筑",
+    "entry_point": "send_game_command",
+    "command_type": "add_construction",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "province": {
+        "type": "integer",
+        "required": true,
+        "description": "地产所在省份编号，可用 holding_buildings 查询"
+      },
+      "index": {
+        "type": "integer",
+        "required": true,
+        "description": "模型指定的建筑槽位索引，可用 holding_buildings 查询"
+      },
+      "type": {
+        "type": "integer",
+        "required": true,
+        "description": "building_types 或 building_type 查询返回的建筑类型 id"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "add_dynasty_perk": {
+    "id": "add_dynasty_perk",
+    "label": "解锁宗族传承",
+    "entry_point": "send_game_command",
+    "command_type": "add_dynasty_perk",
+    "parameters": {
+      "target": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "目标对象编号"
+      },
+      "perk": {
+        "type": "string",
+        "required": true,
+        "description": "技能的脚本名称"
+      },
+      "trait": {
+        "type": "string",
+        "required": false,
+        "description": "可选传承关联特质脚本名称"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "add_law": {
+    "id": "add_law",
+    "label": "颁布领地或王权法律",
+    "entry_point": "send_game_command",
+    "command_type": "add_law",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "law": {
+        "type": "string",
+        "required": true,
+        "description": "法律脚本名称或头衔法律索引"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "add_maa_to_regiment": {
+    "id": "add_maa_to_regiment",
+    "label": "扩充或缩编常备军规模",
+    "entry_point": "send_game_command",
+    "command_type": "add_maa_to_regiment",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "regiment": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "常备军兵种编号或兵团实例编号"
+      },
+      "count": {
+        "type": "integer",
+        "required": true,
+        "description": "常备军士兵人数变化量（按兵种单编 stack 递增，如步兵/骑兵每编 100、攻城器械每编 10；非编队份数）"
+      },
+      "cost": {
+        "type": "enum",
+        "required": false,
+        "description": "支付费用标记",
+        "default": "yes",
+        "choices": [
+          "yes",
+          "no"
+        ]
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "add_perk": {
+    "id": "add_perk",
+    "label": "学习生活方式技能",
+    "entry_point": "send_game_command",
+    "command_type": "add_perk",
+    "parameters": {
+      "target": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "目标对象编号"
+      },
+      "perk": {
+        "type": "string",
+        "required": true,
+        "description": "技能的脚本名称"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "add_rally_point": {
+    "id": "add_rally_point",
+    "label": "新增集结点",
+    "entry_point": "send_game_command",
+    "command_type": "add_rally_point",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "target": {
+        "type": "integer",
+        "required": true,
+        "description": "目标对象编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "add_title_law": {
+    "id": "add_title_law",
+    "label": "为头衔添加法律",
+    "entry_point": "send_game_command",
+    "command_type": "add_title_law",
+    "parameters": {
+      "title": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "title"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "law": {
+        "type": "integer",
+        "required": true,
+        "description": "法律脚本名称或头衔法律索引"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "attach_to_unit": {
+    "id": "attach_to_unit",
+    "label": "将部队附庸至友军单位",
+    "entry_point": "send_game_command",
+    "command_type": "attach_to_unit",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "unit": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "移动单位 unit 的编号，与 army 编号独立",
+        "default": 4294967295
+      },
+      "to": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "跟随的目标友军 unit 编号",
+        "default": 4294967295
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "cancel_construction": {
+    "id": "cancel_construction",
+    "label": "取消地产施工",
+    "entry_point": "send_game_command",
+    "command_type": "cancel_construction",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "province": {
+        "type": "integer",
+        "required": true,
+        "description": "地产所在省份编号，可用 holding_buildings 查询"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "cancel_travel_plan_command": {
+    "id": "cancel_travel_plan_command",
+    "label": "取消旅行规划",
+    "entry_point": "send_game_command",
+    "command_type": "cancel_travel_plan_command",
+    "parameters": {
+      "travel_plan": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "旅行规划编号",
+        "default": 4294967295
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "change_council_task": {
+    "id": "change_council_task",
+    "label": "指派或变更内阁任务",
+    "entry_point": "send_game_command",
+    "command_type": "change_council_task",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "角色编号",
+        "default": 4294967295
+      },
+      "liege": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "领主角色编号",
+        "default": 4294967295
+      },
+      "active_council_task": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "内阁任务实例编号，可用 council_tasks 查询",
+        "default": 4294967295
+      },
+      "task_type": {
+        "type": "string",
+        "required": true,
+        "description": "内阁任务类型脚本名称"
+      },
+      "target": {
+        "type": "scope_value_object",
+        "required": false,
+        "description": "可选作用域目标，如 {type: province/landed_title/char, identity: 编号}",
+        "default": {}
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "clear_title_laws": {
+    "id": "clear_title_laws",
+    "label": "清除头衔法律",
+    "entry_point": "send_game_command",
+    "command_type": "clear_title_laws",
+    "parameters": {
+      "title": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "title"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "create_faction": {
+    "id": "create_faction",
+    "label": "创建派系",
+    "entry_point": "send_game_command",
+    "command_type": "create_faction",
+    "parameters": {
+      "faction_type": {
+        "type": "integer",
+        "required": true,
+        "description": "派系类型索引"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "target": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "目标对象编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "create_maa_regiment": {
+    "id": "create_maa_regiment",
+    "label": "新建常备军兵团",
+    "entry_point": "send_game_command",
+    "command_type": "create_maa_regiment",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "title": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "title",
+        "default": 4294967295
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "regiment": {
+        "type": "integer",
+        "required": true,
+        "description": "常备军兵种编号或兵团实例编号"
+      },
+      "count": {
+        "type": "integer",
+        "required": true,
+        "description": "常备军士兵人数变化量（按兵种单编 stack 递增，如步兵/骑兵每编 100、攻城器械每编 10；非编队份数）"
+      },
+      "cost": {
+        "type": "enum",
+        "required": false,
+        "description": "支付费用标记",
+        "default": "yes",
+        "choices": [
+          "yes",
+          "no"
+        ]
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "create_title": {
+    "id": "create_title",
+    "label": "创建头衔",
+    "entry_point": "send_game_command",
+    "command_type": "create_title",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "landed_title": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "头衔编号，可用 titles 查询"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "declare_war": {
+    "id": "declare_war",
+    "label": "宣战",
+    "entry_point": "declare_war",
+    "parameters": {
+      "target": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "目标角色编号"
+      },
+      "casus_belli": {
+        "type": "string",
+        "required": true,
+        "description": "宣战理由脚本名称"
+      },
+      "titles": {
+        "type": "unsigned_integer_array",
+        "required": false,
+        "default": [],
+        "description": "目标头衔编号"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": false,
+        "default_source": "controlled_character"
+      },
+      "claimant": {
+        "type": "unsigned_integer",
+        "required": false,
+        "default": 4294967295
+      },
+      "uses_hook": {
+        "type": "boolean",
+        "required": false,
+        "default": false
+      },
+      "has_hook": {
+        "type": "boolean",
+        "required": false,
+        "default": false
+      }
+    },
+    "availability": "requires_game_validation"
+  },
+  "decline_activity_invite_command": {
+    "id": "decline_activity_invite_command",
+    "label": "拒绝活动邀请",
+    "entry_point": "send_game_command",
+    "command_type": "decline_activity_invite_command",
+    "parameters": {
+      "activity": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "activity_invitations 查询返回的原生活动 id"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "designate_diarch": {
+    "id": "designate_diarch",
+    "label": "指定摄政官或共治者",
+    "entry_point": "send_game_command",
+    "command_type": "designate_diarch",
+    "parameters": {
+      "liege": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "领主角色编号"
+      },
+      "designated_diarch": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "指定的摄政或共治角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "destroy_faction": {
+    "id": "destroy_faction",
+    "label": "解散派系",
+    "entry_point": "send_game_command",
+    "command_type": "destroy_faction",
+    "parameters": {
+      "faction": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "派系实例编号，可用 factions 查询"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "destroy_maa_regiment": {
+    "id": "destroy_maa_regiment",
+    "label": "裁撤常备军兵团",
+    "entry_point": "send_game_command",
+    "command_type": "destroy_maa_regiment",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "regiment": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "常备军兵种编号或兵团实例编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "destroy_title": {
+    "id": "destroy_title",
+    "label": "销毁头衔",
+    "entry_point": "send_game_command",
+    "command_type": "destroy_title",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "landed_title": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "头衔编号，可用 titles 查询"
+      },
+      "cost": {
+        "type": "boolean",
+        "required": true,
+        "description": "支付费用标记"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "detach_commander": {
+    "id": "detach_commander",
+    "label": "撤下指挥官",
+    "entry_point": "send_game_command",
+    "command_type": "detach_commander",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "detatch_from_unit": {
+    "id": "detatch_from_unit",
+    "label": "脱离友军部队跟随",
+    "entry_point": "send_game_command",
+    "command_type": "detatch_from_unit",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "unit": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "移动单位 unit 的编号，与 army 编号独立",
+        "default": 4294967295
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "disband_army": {
+    "id": "disband_army",
+    "label": "解散军队",
+    "entry_point": "send_game_command",
+    "command_type": "disband_army",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "dismiss_important_action": {
+    "id": "dismiss_important_action",
+    "label": "忽略局势提示",
+    "entry_point": "send_game_command",
+    "command_type": "dismiss_important_action",
+    "parameters": {
+      "important_action_item": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "局势提示实例编号，可用 alerts 查询",
+        "default": 4294967295
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "end_scheme": {
+    "id": "end_scheme",
+    "label": "终止阴谋",
+    "entry_point": "send_game_command",
+    "command_type": "end_scheme",
+    "parameters": {
+      "scheme": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "阴谋实例编号，可用 schemes 查询"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "equip_artifact": {
+    "id": "equip_artifact",
+    "label": "装备宝物",
+    "entry_point": "send_game_command",
+    "command_type": "equip_artifact",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "artifact": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "宝物实例编号"
+      },
+      "replace": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "替换的已装备宝物编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "execute_decision": {
+    "id": "execute_decision",
+    "label": "执行决议",
+    "entry_point": "send_game_command",
+    "command_type": "execute_decision",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "puppeteer": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "操控者编号",
+        "default": 4294967295
+      },
+      "decision": {
+        "type": "string",
+        "required": true,
+        "description": "decisions 或 decision 查询返回的决议脚本 id，模型决定是否执行"
+      },
+      "parameters": {
+        "type": "boolean_event_target_parameters",
+        "required": false,
+        "description": "模型选择的具名布尔事件目标参数，可查询决议 widget、条件和效果脚本。动态参数界面待接入"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "expose_secret": {
+    "id": "expose_secret",
+    "label": "揭露秘密",
+    "entry_point": "send_game_command",
+    "command_type": "expose_secret",
+    "parameters": {
+      "secret": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "秘密实例编号"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "extend_mercenary": {
+    "id": "extend_mercenary",
+    "label": "续约已雇佣佣兵",
+    "entry_point": "send_game_command",
+    "command_type": "extend_mercenary",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "mercenary_company": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "佣兵团编号"
+      },
+      "cost": {
+        "type": "boolean",
+        "required": false,
+        "description": "支付费用标记",
+        "default": false
+      },
+      "war": {
+        "type": "boolean",
+        "required": false,
+        "description": "战争相关标记",
+        "default": false
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "faction_press_demand": {
+    "id": "faction_press_demand",
+    "label": "派系发出最后通牒",
+    "entry_point": "send_game_command",
+    "command_type": "faction_press_demand",
+    "parameters": {
+      "faction": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "派系实例编号，可用 factions 查询"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "fire_council_position": {
+    "id": "fire_council_position",
+    "label": "罢免内阁成员",
+    "entry_point": "send_game_command",
+    "command_type": "fire_council_position",
+    "parameters": {
+      "liege": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "领主角色编号"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "position": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "内阁职位索引"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "give_court_position": {
+    "id": "give_court_position",
+    "label": "任命宫廷职位",
+    "entry_point": "send_game_command",
+    "command_type": "give_court_position",
+    "parameters": {
+      "employer": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "宫廷雇主角色编号",
+        "default": 4294967295
+      },
+      "employee": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "受任角色编号",
+        "default": 4294967295
+      },
+      "court_position": {
+        "type": "string",
+        "required": true,
+        "description": "宫廷职位脚本名称"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "hire_holy_order": {
+    "id": "hire_holy_order",
+    "label": "雇佣骑士团",
+    "entry_point": "send_game_command",
+    "command_type": "hire_holy_order",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "holy_order": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "骑士团编号"
+      },
+      "cost": {
+        "type": "boolean",
+        "required": false,
+        "description": "支付费用标记",
+        "default": false
+      },
+      "war": {
+        "type": "boolean",
+        "required": false,
+        "description": "战争相关标记",
+        "default": false
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "hire_mercenary": {
+    "id": "hire_mercenary",
+    "label": "雇佣佣兵",
+    "entry_point": "send_game_command",
+    "command_type": "hire_mercenary",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "mercenary_company": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "佣兵团编号"
+      },
+      "flags": {
+        "type": "integer",
+        "required": false,
+        "description": "原生选项标记",
+        "default": 3
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "join_activity_command": {
+    "id": "join_activity_command",
+    "label": "参加活动",
+    "entry_point": "send_game_command",
+    "command_type": "join_activity_command",
+    "parameters": {
+      "activity": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "activity_invitations 查询返回的原生活动 id"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "travel": {
+        "type": "enum",
+        "required": false,
+        "description": "yes 使用游戏的活动旅行流程，no 提交无需旅行的参加方式。合法性由游戏核对",
+        "default": "yes",
+        "choices": [
+          "yes",
+          "no"
+        ]
+      },
+      "check_start_date": {
+        "type": "boolean",
+        "required": false,
+        "description": "使用游戏原生的开始日期校验，默认 true",
+        "default": true
+      },
+      "travel_plan_draft_created": {
+        "type": "travel_plan_object",
+        "required": false,
+        "description": "可选自定义 CTravelPlan 旅行草案，含 departure_date、departure_location、waypoints、destinations 等"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "join_faction": {
+    "id": "join_faction",
+    "label": "加入派系",
+    "entry_point": "send_game_command",
+    "command_type": "join_faction",
+    "parameters": {
+      "faction": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "派系实例编号，可用 factions 查询"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "knight_status": {
+    "id": "knight_status",
+    "label": "设置角色骑士征召状态",
+    "entry_point": "send_game_command",
+    "command_type": "knight_status",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "knight_status": {
+        "type": "enum",
+        "required": true,
+        "description": "骑士状态（force/default/not/none）",
+        "choices": [
+          "force",
+          "default",
+          "not",
+          "none"
+        ]
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "leave_council_position": {
+    "id": "leave_council_position",
+    "label": "辞去领主内阁职务",
+    "entry_point": "send_game_command",
+    "command_type": "leave_council_position",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "leave_faction": {
+    "id": "leave_faction",
+    "label": "退出派系",
+    "entry_point": "send_game_command",
+    "command_type": "leave_faction",
+    "parameters": {
+      "faction": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "派系实例编号，可用 factions 查询"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "mass_prisoner_action": {
+    "id": "mass_prisoner_action",
+    "label": "批量处置囚犯（赎回/释放/处决）",
+    "entry_point": "send_game_command",
+    "command_type": "mass_prisoner_action",
+    "parameters": {
+      "interaction": {
+        "type": "enum",
+        "required": true,
+        "description": "批量囚犯操作类型（ransom_interaction/release_from_prison_interaction/execute_prisoner_interaction）",
+        "choices": [
+          "ransom_interaction",
+          "release_from_prison_interaction",
+          "execute_prisoner_interaction"
+        ]
+      },
+      "actor": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "行动角色编号",
+        "default": 4294967295
+      },
+      "prisoners": {
+        "type": "unsigned_integer_array",
+        "required": false,
+        "description": "囚犯角色编号列表",
+        "default": []
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "merge_units": {
+    "id": "merge_units",
+    "label": "合并多个单位",
+    "entry_point": "send_game_command",
+    "command_type": "merge_units",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "target": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "目标对象编号"
+      },
+      "units": {
+        "type": "unsigned_integer_array",
+        "required": false,
+        "description": "移动单位 unit 编号数组",
+        "default": []
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "move_rally_point": {
+    "id": "move_rally_point",
+    "label": "移动集结点位置",
+    "entry_point": "send_game_command",
+    "command_type": "move_rally_point",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "rally_point": {
+        "type": "integer",
+        "required": true,
+        "description": "选中的集结点索引"
+      },
+      "target": {
+        "type": "integer",
+        "required": true,
+        "description": "目标对象编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "move_unit": {
+    "id": "move_unit",
+    "label": "移动单位",
+    "entry_point": "send_game_command",
+    "command_type": "move_unit",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "unit": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "移动单位 unit 的编号，与 army 编号独立"
+      },
+      "target": {
+        "type": "integer",
+        "required": true,
+        "description": "模型指定的目标省份编号"
+      },
+      "unit_order_type": {
+        "type": "enum",
+        "required": true,
+        "description": "set 替换行军命令，append 追加行军命令",
+        "choices": [
+          "set",
+          "append",
+          "invalid"
+        ]
+      },
+      "type": {
+        "type": "enum",
+        "required": true,
+        "description": "路线的陆地或水域类型",
+        "choices": [
+          "land",
+          "water",
+          "any"
+        ]
+      },
+      "gathering_army": {
+        "type": "enum",
+        "required": true,
+        "description": "集结状态处理方式",
+        "choices": [
+          "reset",
+          "default"
+        ]
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "nominate_successor_for_title": {
+    "id": "nominate_successor_for_title",
+    "label": "提名头衔继承人",
+    "entry_point": "send_game_command",
+    "command_type": "nominate_successor_for_title",
+    "parameters": {
+      "elector": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "选举人角色编号"
+      },
+      "title": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "title"
+      },
+      "candidate": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "被提名继承人角色编号"
+      },
+      "force": {
+        "type": "boolean",
+        "required": false,
+        "description": "是否强制提名",
+        "default": false
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "pause_game_command": {
+    "id": "pause_game_command",
+    "label": "设置本人暂停状态",
+    "entry_point": "send_game_command",
+    "command_type": "pause_game_command",
+    "parameters": {
+      "player": {
+        "type": "integer",
+        "required": true,
+        "description": "本机玩家编号"
+      },
+      "value": {
+        "type": "boolean",
+        "required": true,
+        "description": "本人暂停状态"
+      }
+    },
+    "header": {
+      "attribs": 8
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "raid": {
+    "id": "raid",
+    "label": "命令军队开始劫掠",
+    "entry_point": "send_game_command",
+    "command_type": "raid",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "raise_troops": {
+    "id": "raise_troops",
+    "label": "集结军队",
+    "entry_point": "send_game_command",
+    "command_type": "raise_troops",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "rally_points": {
+        "type": "rally_point_array",
+        "required": false,
+        "description": "由 province 省份编号和 color 颜色编号组成的数组",
+        "default": []
+      },
+      "rally_point": {
+        "type": "integer",
+        "required": false,
+        "description": "选中的集结点索引",
+        "default": -1
+      },
+      "raise_army_type": {
+        "type": "enum",
+        "required": true,
+        "description": "集结类型",
+        "choices": [
+          "raid",
+          "regular",
+          "men_at_arms",
+          "barter",
+          "none"
+        ]
+      },
+      "supply_limit": {
+        "type": "boolean",
+        "required": false,
+        "description": "补给限制标记",
+        "default": false
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "remove_rally_point": {
+    "id": "remove_rally_point",
+    "label": "移除集结点",
+    "entry_point": "send_game_command",
+    "command_type": "remove_rally_point",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "target": {
+        "type": "integer",
+        "required": true,
+        "description": "目标对象编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "reorganize_army": {
+    "id": "reorganize_army",
+    "label": "重组与合并常备军兵团",
+    "entry_point": "send_game_command",
+    "command_type": "reorganize_army",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      },
+      "merge_army": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "合并目标军队编号",
+        "default": 4294967295
+      },
+      "select_unit": {
+        "type": "integer",
+        "required": true,
+        "description": "操作后选中的单位索引"
+      },
+      "disband_army": {
+        "type": "integer",
+        "required": true,
+        "description": "disband_army"
+      },
+      "regiments": {
+        "type": "unsigned_integer_array",
+        "required": false,
+        "description": "regiments",
+        "default": []
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "reply_character_interaction": {
+    "id": "reply_character_interaction",
+    "label": "回应收到的人物互动请求",
+    "entry_point": "send_game_command",
+    "command_type": "reply_character_interaction",
+    "parameters": {
+      "character_interaction": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "incoming_interactions 查询返回的待回复实例 id"
+      },
+      "accept": {
+        "type": "enum",
+        "required": true,
+        "description": "由模型选择 accept 接受、reject 拒绝、block 阻止或 acknowledge 确认。原生可用状态通过请求详情核对",
+        "choices": [
+          "accept",
+          "reject",
+          "block",
+          "acknowledge"
+        ]
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "revoke_court_position": {
+    "id": "revoke_court_position",
+    "label": "撤销宫廷职位",
+    "entry_point": "send_game_command",
+    "command_type": "revoke_court_position",
+    "parameters": {
+      "court_position": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "已任命宫廷职位实例编号",
+        "default": 4294967295
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "select_commander": {
+    "id": "select_commander",
+    "label": "任命指挥官",
+    "entry_point": "send_game_command",
+    "command_type": "select_commander",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "select_culture_fascination": {
+    "id": "select_culture_fascination",
+    "label": "选择文化革新聚焦项目",
+    "entry_point": "send_game_command",
+    "command_type": "select_culture_fascination",
+    "parameters": {
+      "player": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "本机玩家编号",
+        "default": 4294967295
+      },
+      "culture": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "文化编号",
+        "default": 4294967295
+      },
+      "culture_innovation": {
+        "type": "integer",
+        "required": true,
+        "description": "文化革新编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "select_event_option": {
+    "id": "select_event_option",
+    "label": "选择事件选项",
+    "entry_point": "send_game_command",
+    "command_type": "select_event_option",
+    "parameters": {
+      "data": {
+        "type": "integer",
+        "required": true,
+        "description": "event 查询返回的待处理事件实例编号"
+      },
+      "option": {
+        "type": "integer",
+        "required": true,
+        "description": "event_options 查询返回的原生选项索引"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "send_interaction": {
+    "id": "send_interaction",
+    "label": "发送普通或头衔/宝物目标人物互动",
+    "entry_point": "send_interaction",
+    "parameters": {
+      "interaction": {
+        "type": "string",
+        "required": true,
+        "examples": [
+          "arrange_marriage_interaction",
+          "gift_interaction",
+          "offer_vassalization_interaction",
+          "invite_to_court_interaction"
+        ],
+        "description": "受支持的人物互动脚本名称，可用 interactions/interaction 查询目录、分类、目标类型与选项标记"
+      },
+      "recipient": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "接收互动的角色，婚姻提议中为对方婚姻安排者"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": false,
+        "default_source": "controlled_character"
+      },
+      "secondary_actor": {
+        "type": "unsigned_integer",
+        "required": false,
+        "default": 4294967295,
+        "required_for": [
+          "arrange_marriage_interaction"
+        ],
+        "description": "本方拟结婚角色"
+      },
+      "secondary_recipient": {
+        "type": "unsigned_integer",
+        "required": false,
+        "default": 4294967295,
+        "required_for": [
+          "arrange_marriage_interaction"
+        ],
+        "description": "对方拟结婚角色"
+      },
+      "target": {
+        "type": "scope_value_object",
+        "required": false,
+        "description": "互动目标，传 {type: landed_title|artifact|war, identity: 编号}；召集盟友参战时必须指定 war 目标"
+      },
+      "special_fields": {
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": "特化互动所需的原生附加载荷字段，详见 interaction.special_parameters（如授衔 titles/government、剥夺 title、修改契约 types/level、宫廷职位 court_position、内阁任务 active_council_task）"
+      },
+      "option_flags": {
+        "type": "named_boolean_options",
+        "required": false,
+        "default": {},
+        "description": "interaction.send_options 提供的标记与布尔值，按安装脚本的顺序编码"
+      }
+    },
+    "availability": "shadow_unicorn_ai_acceptance"
+  },
+  "set_activity_intent_command": {
+    "id": "set_activity_intent_command",
+    "label": "设置活动意图",
+    "entry_point": "set_activity_intent_command",
+    "parameters": {
+      "intent": {
+        "type": "string",
+        "required": true,
+        "description": "活动意图脚本名称，见 activity_type.host_intents 或 guest_intents"
+      },
+      "target": {
+        "type": "unsigned_integer",
+        "required": false,
+        "default": 4294967295,
+        "description": "可选意图目标角色编号"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": false,
+        "default_source": "controlled_character"
+      }
+    },
+    "availability": "requires_game_validation"
+  },
+  "set_character_focus": {
+    "id": "set_character_focus",
+    "label": "切换生活重心",
+    "entry_point": "send_game_command",
+    "command_type": "set_character_focus",
+    "parameters": {
+      "target": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "目标对象编号"
+      },
+      "focus_type": {
+        "type": "string",
+        "required": true,
+        "description": "生活重心的脚本名称"
+      },
+      "actor": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "行动角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "set_countermeasure": {
+    "id": "set_countermeasure",
+    "label": "设置阴谋反制措施",
+    "entry_point": "send_game_command",
+    "command_type": "set_countermeasure",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "角色编号",
+        "default": 4294967295
+      },
+      "scheme_countermeasure_type": {
+        "type": "string",
+        "required": true,
+        "description": "反制措施脚本名称"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "set_diarchy_mandate": {
+    "id": "set_diarchy_mandate",
+    "label": "设置摄政职权重心",
+    "entry_point": "send_game_command",
+    "command_type": "set_diarchy_mandate",
+    "parameters": {
+      "liege": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "领主角色编号"
+      },
+      "mandate": {
+        "type": "string",
+        "required": true,
+        "description": "摄政职权脚本名称"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "set_maa_reinforce": {
+    "id": "set_maa_reinforce",
+    "label": "切换常备军补员开关",
+    "entry_point": "send_game_command",
+    "command_type": "set_maa_reinforce",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "reinforce": {
+        "type": "boolean",
+        "required": true,
+        "description": "是否开启补员"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "set_primary_title": {
+    "id": "set_primary_title",
+    "label": "设为主头衔",
+    "entry_point": "send_game_command",
+    "command_type": "set_primary_title",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "landed_title": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "头衔编号，可用 titles 查询"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "set_realm_capital": {
+    "id": "set_realm_capital",
+    "label": "迁都至伯爵领首府",
+    "entry_point": "send_game_command",
+    "command_type": "set_realm_capital",
+    "parameters": {
+      "cooldown": {
+        "type": "boolean",
+        "required": true,
+        "description": "检查或使用冷却标记"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "landed_title": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "头衔编号，可用 titles 查询"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "set_speed": {
+    "id": "set_speed",
+    "label": "设置游戏速度",
+    "entry_point": "send_game_command",
+    "command_type": "set_speed",
+    "parameters": {
+      "speed": {
+        "type": "integer",
+        "required": true,
+        "description": "游戏速度档位"
+      }
+    },
+    "header": {
+      "attribs": 8
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "split_army_for_siege": {
+    "id": "split_army_for_siege",
+    "label": "分兵留守围城",
+    "entry_point": "send_game_command",
+    "command_type": "split_army_for_siege",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "actor": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "行动角色编号"
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      },
+      "soldiers_to_stay": {
+        "type": "integer",
+        "required": true,
+        "description": "留守围城的最低兵力数量"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "split_half_army": {
+    "id": "split_half_army",
+    "label": "将半数军队拆分",
+    "entry_point": "send_game_command",
+    "command_type": "split_half_army",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "actor": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "行动角色编号"
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "start_activity_command": {
+    "id": "start_activity_command",
+    "label": "主动举办活动",
+    "entry_point": "start_activity_command",
+    "parameters": {
+      "type": {
+        "type": "string",
+        "required": true,
+        "description": "activity_types 或 activity_type 查询返回的活动脚本名称"
+      },
+      "start_date": {
+        "type": "integer",
+        "required": true,
+        "description": "原生游戏小时日期整数，可由当前世界日期及延后天数确定"
+      },
+      "phases": {
+        "type": "array",
+        "required": true,
+        "description": "活动阶段数组，每项含 phase 阶段名称、province 省份编号及可选 guest_subsets"
+      },
+      "host": {
+        "type": "unsigned_integer",
+        "required": false,
+        "default_source": "controlled_character",
+        "description": "主持角色编号，默认当前控制角色"
+      },
+      "intent": {
+        "type": "activity_intent_object",
+        "required": false,
+        "default": {},
+        "description": "主持者意图对象，含可选 type 意图名称与 target 目标角色编号"
+      },
+      "guest_delay_days": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "invite_duration": {
+        "type": "integer",
+        "required": false,
+        "default": 0
+      },
+      "options": {
+        "type": "object",
+        "required": false,
+        "default": {},
+        "description": "activity_type.options 提供的类别到选项映射"
+      },
+      "special_guests": {
+        "type": "object",
+        "required": false,
+        "default": {},
+        "description": "特殊宾客槽位到角色编号映射"
+      },
+      "invitations": {
+        "type": "array",
+        "required": false,
+        "default": [],
+        "description": "按邀请组划分的角色编号二维数组（如 [[char_id1, char_id2]]）；多数活动要求至少邀请 1 名宾客，否则房主校验会静默拒绝"
+      },
+      "travel_plan": {
+        "type": "travel_plan_object",
+        "required": false,
+        "description": "可选原生 CTravelPlan 旅行规划对象"
+      },
+      "variables": {
+        "type": "object",
+        "required": false,
+        "default": {}
+      },
+      "tenets": {
+        "type": "string_array",
+        "required": false,
+        "default": []
+      },
+      "doctrines": {
+        "type": "string_array",
+        "required": false,
+        "default": []
+      }
+    },
+    "availability": "requires_game_validation"
+  },
+  "start_assault": {
+    "id": "start_assault",
+    "label": "强攻围城",
+    "entry_point": "send_game_command",
+    "command_type": "start_assault",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "siege": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "围城实例编号"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "start_court_position_task": {
+    "id": "start_court_position_task",
+    "label": "指派宫廷职位任务",
+    "entry_point": "send_game_command",
+    "command_type": "start_court_position_task",
+    "parameters": {
+      "court_position": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "court_position",
+        "default": 4294967295
+      },
+      "task_type": {
+        "type": "string",
+        "required": true,
+        "description": "内阁任务类型脚本名称"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "stop": {
+    "id": "stop",
+    "label": "停止单位行军",
+    "entry_point": "send_game_command",
+    "command_type": "stop",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "units": {
+        "type": "unsigned_integer_array",
+        "required": false,
+        "description": "移动单位 unit 编号数组",
+        "default": []
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "stop_assault": {
+    "id": "stop_assault",
+    "label": "停止强攻",
+    "entry_point": "send_game_command",
+    "command_type": "stop_assault",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "siege": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "围城实例编号"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "stop_court_position_task": {
+    "id": "stop_court_position_task",
+    "label": "停止宫廷职位任务",
+    "entry_point": "send_game_command",
+    "command_type": "stop_court_position_task",
+    "parameters": {
+      "court_position": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "court_position",
+        "default": 4294967295
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "stop_gathering_army": {
+    "id": "stop_gathering_army",
+    "label": "停止集结",
+    "entry_point": "send_game_command",
+    "command_type": "stop_gathering_army",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "swap_council_position": {
+    "id": "swap_council_position",
+    "label": "互换内阁职位",
+    "entry_point": "send_game_command",
+    "command_type": "swap_council_position",
+    "parameters": {
+      "liege": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "领主角色编号"
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "target": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "目标对象编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "toggle_raiding": {
+    "id": "toggle_raiding",
+    "label": "切换军队劫掠状态",
+    "entry_point": "send_game_command",
+    "command_type": "toggle_raiding",
+    "parameters": {
+      "valid_for": {
+        "type": "enum",
+        "required": true,
+        "description": "原生命令的控制者类别",
+        "choices": [
+          "none",
+          "player",
+          "ai"
+        ]
+      },
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "army": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "军队编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "toggle_scheme_agents_auto_assign": {
+    "id": "toggle_scheme_agents_auto_assign",
+    "label": "切换自动指派阴谋同谋",
+    "entry_point": "send_game_command",
+    "command_type": "toggle_scheme_agents_auto_assign",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": false,
+        "description": "角色编号",
+        "default": 4294967295
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "unequip_artifact": {
+    "id": "unequip_artifact",
+    "label": "卸下宝物",
+    "entry_point": "send_game_command",
+    "command_type": "unequip_artifact",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "artifact": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "宝物实例编号"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  },
+  "usurp_title": {
+    "id": "usurp_title",
+    "label": "篡夺头衔",
+    "entry_point": "send_game_command",
+    "command_type": "usurp_title",
+    "parameters": {
+      "character": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "角色编号"
+      },
+      "landed_title": {
+        "type": "unsigned_integer",
+        "required": true,
+        "description": "头衔编号，可用 titles 查询"
+      }
+    },
+    "header": {
+      "attribs": 14
+    },
+    "communication_defaults": "SDK supplies sender, receiver, identity and recipient",
+    "availability": "requires_game_validation"
+  }
+}

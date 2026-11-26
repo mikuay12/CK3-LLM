@@ -1,11 +1,18 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::{Context, Result, anyhow, ensure};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
 use crate::session::CK3_BUILD;
-use crate::world::Query;
+use crate::world::{Query, date_text};
+
+mod construction;
+mod governance;
+mod messages;
+mod military;
+mod navigation;
+mod shadow;
 
 #[cfg(test)]
 mod tests;
@@ -21,7 +28,7 @@ const PROVINCE_MANAGER_VTABLE: u64 = 0x4787058;
 const PROVINCE_VTABLE: u64 = 0x4742e90;
 const COUNTY_DATA_VTABLE: u64 = 0x4746bc0;
 
-pub(super) const REQUIRED_IMAGE_BYTES: u64 = 0x5d33c78 + 8;
+pub(super) const REQUIRED_IMAGE_BYTES: u64 = 0x5d34fb8 + 8;
 pub(super) const MAX_READ_BYTES: usize = 1024 * 1024;
 const MAX_SLOTS: u32 = 0x0100_0000;
 const SLOT_BYTES: u64 = 16;
@@ -268,27 +275,6 @@ impl Clock {
     }
 }
 
-fn date_text(raw: u32) -> String {
-    let days = raw / 24;
-    let year = (days / 365) as i32 - 5000;
-    let mut day = days % 365;
-    let mut month = 1;
-    for length in [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30] {
-        if day < length {
-            break;
-        }
-        day -= length;
-        month += 1;
-    }
-    let date = format!("{year}.{month}.{}", day + 1);
-    let hour = raw % 24;
-    if hour == 0 {
-        date
-    } else {
-        format!("{date} {hour:02}:00")
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Table {
     database: u64,
@@ -378,18 +364,140 @@ pub(super) struct Catalogs {
 }
 
 impl Catalogs {
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    pub fn player_context(
+        &mut self,
+        memory: &dyn Memory,
+        base: u64,
+        machine: u32,
+    ) -> Result<super::PlayerContext> {
+        let (clock, (name, character)) = self.read(memory, base, |view| {
+            let player = view
+                .players()?
+                .iter()
+                .find(|player| player.machineid == machine)
+                .context("等待虚拟玩家进入战役")?;
+            let name = player.name.clone();
+            let character = player.character_id.context("等待虚拟玩家选择角色")?;
+            let object = view.lookup(CHARACTER, character)?;
+            ensure!(
+                view.read.pointer(object + 0x1b0)? != 0,
+                "等待虚拟玩家切换到在世角色"
+            );
+            Ok((name, character))
+        })?;
+        Ok(super::PlayerContext {
+            character,
+            name,
+            date: date_text(clock.date),
+            tick: clock.tick,
+            generation: self.generation,
+        })
+    }
+
     pub fn query(&mut self, memory: &dyn Memory, base: u64, request: Query<'_>) -> Result<Value> {
-        let (clock, data) = self.read(memory, base, |view| view.execute(request))?;
+        let scan = matches!(request, Query::Military { .. } | Query::Entities(_));
+        let (clock, data) = self.consistent(memory, base, scan, |view| view.execute(request))?;
         Ok(json!({
             "source": "live", "date": date_text(clock.date),
             "date_raw": clock.date, "tick": clock.tick, "data": data,
         }))
     }
 
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    pub fn acceptance(
+        &mut self,
+        memory: &dyn Memory,
+        base: u64,
+        player: &super::PlayerContext,
+        data: &Value,
+    ) -> Result<(f64, f64)> {
+        let interaction = shadow::Interaction::deserialize(data)?;
+        ensure!(
+            interaction.actor == player.character,
+            "互动发起人需要使用当前控制角色"
+        );
+        let (_, values) = self.read(memory, base, |view| {
+            ensure!(
+                view.catalogs.generation == player.generation,
+                "战役已变化，请重新查询"
+            );
+            for id in [
+                interaction.actor,
+                interaction.recipient,
+                interaction.secondary_actor,
+                interaction.secondary_recipient,
+            ]
+            .into_iter()
+            .filter(|&id| id != NO_REFERENCE)
+            {
+                view.lookup(CHARACTER, id)?;
+            }
+            view.shadow()?.acceptance(&interaction)
+        })?;
+        Ok((values.ai_accept, values.ai_intermediary_accept))
+    }
+
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    pub fn evaluate_script(
+        &mut self,
+        memory: &dyn Memory,
+        base: u64,
+        kind: crate::world::QueryKind,
+        name: &str,
+        id: u32,
+    ) -> Result<Value> {
+        let (_, result) = self.read(memory, base, |view| {
+            let object = view.lookup(CHARACTER, id)?;
+            let cooldown = view.planning_cooldown(object, kind, name);
+            let native = view.shadow().and_then(|mut engine| match kind {
+                crate::world::QueryKind::Decision => engine.decision(id, object, name),
+                crate::world::QueryKind::ActivityType => engine.activity_type(id, object, name),
+                _ => anyhow::bail!("无效的计划查询"),
+            });
+            let mut data =
+                native.unwrap_or_else(|error| json!({"native_error":format!("{error:#}")}));
+            data["cooldown"] = cooldown.unwrap_or_else(
+                |error| json!({"status":"unavailable", "error":format!("{error:#}")}),
+            );
+            Ok(data)
+        })?;
+        Ok(result)
+    }
+
+    #[cfg(all(windows, target_arch = "x86_64"))]
+    pub fn men_at_arms_indices(
+        &mut self,
+        memory: &dyn Memory,
+        base: u64,
+    ) -> Result<HashMap<String, usize>> {
+        let (_, indices) = self.read(memory, base, |view| {
+            let database = view.read.pointer(base + 0x5c7c4e0)?;
+            ensure!(database != 0, "常备军兵种目录暂不可用");
+            let entries = view.read.keys(database + 0x50)?;
+            Ok(entries
+                .into_iter()
+                .enumerate()
+                .filter_map(|(index, key)| key.map(|key| (key, index)))
+                .collect())
+        })?;
+        Ok(indices)
+    }
+
     fn read<T>(
         &mut self,
         memory: &dyn Memory,
         base: u64,
+        read: impl FnMut(&mut WorldView<'_>) -> Result<T>,
+    ) -> Result<(Clock, T)> {
+        self.consistent(memory, base, false, read)
+    }
+
+    fn consistent<T>(
+        &mut self,
+        memory: &dyn Memory,
+        base: u64,
+        allow_advance: bool,
         mut read: impl FnMut(&mut WorldView<'_>) -> Result<T>,
     ) -> Result<(Clock, T)> {
         let mut last_error = None;
@@ -410,12 +518,12 @@ impl Catalogs {
                 Ok(data)
             });
             let after = Clock::read(memory, base)?;
-            if before != after {
+            if before != after && (!allow_advance || !after.follows(before)) {
                 last_error = Some(anyhow!("游戏在读取期间推进，请重试查询"));
                 continue;
             }
             match result {
-                Ok(data) => return Ok((before, data)),
+                Ok(data) => return Ok((after, data)),
                 Err(error) => last_error = Some(error),
             }
         }
@@ -502,7 +610,115 @@ impl<'a> WorldView<'a> {
                 Ok(serde_json::to_value(title)?)
             }
             Query::Province(id) => self.province(id),
+            Query::ProvinceSupply {
+                province,
+                character,
+            } => {
+                let mut value = self.province(province)?;
+                let province = self.province_object(province)?;
+                let character = self.lookup(CHARACTER, character)?;
+                let result = self
+                    .shadow()
+                    .and_then(|mut engine| engine.supply_limit(province, character));
+                match result {
+                    Ok(limit) => {
+                        value["supply_limit"] = limit.into();
+                        value["supply_limit_source"] = "native_shadow_unicorn".into();
+                    }
+                    Err(error) => {
+                        value["supply_limit"] = Value::Null;
+                        value["supply_limit_error"] = format!("{error:#}").into();
+                    }
+                }
+                Ok(value)
+            }
+            Query::Native(kind, id) if kind.is_entity() => self.entity_detail(kind, id),
+            Query::Native(kind, id) => self.military_query(kind, id),
+            Query::Realm(key) => self.realm_detail(key),
+            Query::Entities(request) => self.entities(request),
+            Query::Military {
+                kind,
+                character,
+                offset,
+                limit,
+            } => self.military_list(kind, character, offset, limit),
+            Query::Script { .. } | Query::ScriptList { .. } => {
+                anyhow::bail!("查询需要安装脚本目录")
+            }
+            Query::ObservedCommands { .. } => anyhow::bail!("此查询需要回放数据库"),
+            Query::ProvinceMap(_) | Query::Navigation(_) => anyhow::bail!("查询需要安装地图"),
+            Query::BuildingType(id) => self.building_type(id),
+            Query::People {
+                kind,
+                id,
+                other,
+                offset,
+                limit,
+            } => self.relations(kind, id, other, offset, limit),
+            Query::BuildingTypes {
+                search,
+                offset,
+                limit,
+            } => self.building_types(search, offset, limit),
+            Query::ConstructionQuote {
+                province,
+                building,
+                character,
+                slot,
+                treasury,
+            } => self.construction_quote(province, building, character, slot, treasury),
+            Query::Declaration {
+                actor,
+                target,
+                casus_belli,
+                titles,
+                claimant,
+            } => {
+                let actor = self.query_character(actor)?;
+                for id in [actor, target, claimant]
+                    .into_iter()
+                    .filter(|&id| id != NO_REFERENCE)
+                {
+                    self.lookup(CHARACTER, id)?;
+                }
+                ensure!(target != NO_REFERENCE, "宣战预览需要目标角色编号");
+                for &title in titles {
+                    self.lookup(TITLE, title)?;
+                }
+                self.shadow()?
+                    .declaration(actor, target, casus_belli, titles, claimant)
+            }
+            Query::Pending {
+                kind,
+                id,
+                character,
+            } => {
+                #[cfg(all(windows, target_arch = "x86_64"))]
+                return self.pending_detail(kind, id, character);
+                #[cfg(not(all(windows, target_arch = "x86_64")))]
+                {
+                    let _ = (kind, id, character);
+                    anyhow::bail!("查询需要 Windows x64")
+                }
+            }
         }
+    }
+
+    fn shadow(&self) -> Result<shadow::Shadow<'a>> {
+        shadow::Shadow::new(self.read.memory, self.base)
+    }
+
+    fn query_character(&mut self, id: Option<u32>) -> Result<u32> {
+        if let Some(id) = id {
+            return Ok(id);
+        }
+        let mut players = self
+            .players()?
+            .iter()
+            .filter_map(|player| player.character_id);
+        let id = players.next().context("查询需要角色编号")?;
+        ensure!(players.next().is_none(), "当前有多个玩家，请指定角色编号");
+        Ok(id)
     }
 
     fn table(&mut self, layout: Layout) -> Result<Table> {

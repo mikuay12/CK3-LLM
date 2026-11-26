@@ -9,6 +9,7 @@ pub struct MemoryPage {
     category: Category,
     draft: String,
     feedback: Option<(bool, String)>,
+    dirty: bool,
 }
 
 impl MemoryPage {
@@ -19,6 +20,7 @@ impl MemoryPage {
             category: Category::default(),
             draft: String::new(),
             feedback: None,
+            dirty: false,
         };
         page.reload();
         page
@@ -28,6 +30,14 @@ impl MemoryPage {
         self.store
             .as_ref()
             .map_or_else(String::new, |store| store.prompt(1500))
+    }
+
+    pub fn on_external_update(&mut self) {
+        if self.dirty {
+            self.feedback = Some((false, "模型已写入新记忆，当前页面还有未保存的修改".into()));
+        } else {
+            self.reload();
+        }
     }
 
     pub fn show(&mut self, ui: &mut Ui) {
@@ -53,6 +63,7 @@ impl MemoryPage {
                             Some(match store.add(self.scope, self.category, &self.draft) {
                                 Ok(()) => {
                                     self.draft.clear();
+                                    self.dirty = true;
                                     (true, "记忆已添加".into())
                                 }
                                 Err(error) => (false, format!("{error:#}")),
@@ -64,13 +75,19 @@ impl MemoryPage {
                             .pick_file()
                     {
                         self.feedback = Some(match store.import(&file) {
-                            Ok(count) => (true, format!("已导入 {count} 条记忆")),
+                            Ok(count) => {
+                                self.dirty |= count > 0;
+                                (true, format!("已导入 {count} 条记忆"))
+                            }
                             Err(error) => (false, format!("{error:#}")),
                         });
                     }
                     if ui.button("保存记忆").clicked() {
                         self.feedback = Some(match store.save() {
-                            Ok(()) => (true, "记忆已保存".into()),
+                            Ok(()) => {
+                                self.dirty = false;
+                                (true, "记忆已保存".into())
+                            }
                             Err(error) => (false, format!("{error:#}")),
                         });
                     }
@@ -98,21 +115,26 @@ impl MemoryPage {
             ui.add_space(6.0);
             style::card(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
+                    let category = entry.category;
                     pick_category(ui, &entry.id, &mut entry.category);
-                    ui.checkbox(&mut entry.enabled, "用于对话");
+                    let enabled_changed = ui.checkbox(&mut entry.enabled, "用于对话").changed();
+                    self.dirty |= category != entry.category || enabled_changed;
                     if ui.small_button("删除").clicked() {
                         removed = Some(index);
                     }
                 });
-                ui.add(
-                    TextEdit::multiline(&mut entry.content)
-                        .desired_rows(2)
-                        .desired_width(f32::INFINITY),
-                );
+                self.dirty |= ui
+                    .add(
+                        TextEdit::multiline(&mut entry.content)
+                            .desired_rows(2)
+                            .desired_width(f32::INFINITY),
+                    )
+                    .changed();
             });
         }
         if let Some(index) = removed {
             store.items.remove(index);
+            self.dirty = true;
         }
     }
 
@@ -121,6 +143,7 @@ impl MemoryPage {
             Ok(store) => {
                 self.store = Some(store);
                 self.feedback = None;
+                self.dirty = false;
             }
             Err(error) => self.feedback = Some((false, format!("{error:#}"))),
         }

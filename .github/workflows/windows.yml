@@ -28,6 +28,11 @@ jobs:
           "RUSTFLAGS=-C target-feature=+crt-static -Lnative=$clangPath" >> $env:GITHUB_ENV
           $clang = Join-Path $env:ProgramFiles 'LLVM/bin'
           if (Test-Path -LiteralPath (Join-Path $clang 'libclang.dll')) { "LIBCLANG_PATH=$clang" >> $env:GITHUB_ENV }
+      - name: Prepare Unicorn 2.1.4
+        run: |
+          $runtime = ./scripts/prepare-unicorn.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'ck3-unicorn')
+          "CK3_UNICORN_DIR=$runtime" >> $env:GITHUB_ENV
+          "CK3_UNICORN_DLL=$(Join-Path $runtime 'unicorn.dll')" >> $env:GITHUB_ENV
       - name: Check formatting
         run: cargo fmt --all --check
       - name: Run Clippy

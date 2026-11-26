@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(default)]
@@ -15,6 +16,15 @@ pub struct ConnectionSettings {
     pub username: String,
     pub identity: String,
     pub join_game: bool,
+    pub transfer: TransferMode,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TransferMode {
+    #[default]
+    Fast,
+    Serial,
 }
 
 impl Default for ConnectionSettings {
@@ -25,6 +35,7 @@ impl Default for ConnectionSettings {
             username: "AIObserver".into(),
             identity: "AIObserver".into(),
             join_game: false,
+            transfer: TransferMode::Fast,
         }
     }
 }
@@ -37,6 +48,30 @@ pub struct ModelSettings {
     pub api_key_env: Option<String>,
     pub instructions: String,
     pub request_timeout: f64,
+    pub idle_seconds: f64,
+    pub max_query_chars: usize,
+    pub context_chars: usize,
+    pub response_format: ModelOutput,
+    pub modal_gate: ModalGate,
+    pub fold_old_tool_results: bool,
+    pub request_options: Map<String, Value>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModelOutput {
+    #[default]
+    Json,
+    CompactText,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModalGate {
+    #[default]
+    Off,
+    NoWait,
+    Strict,
 }
 
 impl Default for ModelSettings {
@@ -47,6 +82,13 @@ impl Default for ModelSettings {
             api_key_env: Some("CK3_MODEL_API_KEY".into()),
             instructions: String::new(),
             request_timeout: 45.0,
+            idle_seconds: 60.0,
+            max_query_chars: 6_000,
+            context_chars: 64_000,
+            response_format: ModelOutput::Json,
+            modal_gate: ModalGate::Off,
+            fold_old_tool_results: false,
+            request_options: Map::new(),
         }
     }
 }

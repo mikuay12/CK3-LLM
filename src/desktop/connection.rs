@@ -6,7 +6,7 @@ use ck3_llm::session::{
     SessionTask, Traffic, Update,
     native::{NakamaSdk, SUPPORTED_SDK},
 };
-use ck3_llm::settings::ConnectionSettings;
+use ck3_llm::settings::{ConnectionSettings, TransferMode};
 use eframe::egui::{Button, RichText, TextEdit, Ui};
 
 use super::{actions::ActionEditor, notifications::NotificationsPage, style};
@@ -63,6 +63,17 @@ impl ConnectionPage {
             .and_then(|machine| u32::try_from(machine).ok())
     }
 
+    pub fn play_session(&self, player_name: &str) -> Option<ck3_llm::model::player::Session> {
+        if self.phase != Phase::Joined || self.snapshot.is_none() {
+            return None;
+        }
+        Some(ck3_llm::model::player::Session {
+            actions: self.task.as_ref()?.actions(),
+            machine: self.machine()?,
+            player_name: player_name.into(),
+        })
+    }
+
     pub fn poll(&mut self, notifications: &mut NotificationsPage) {
         if let Some(probe) = &self.probe {
             let result = match probe.try_recv() {
@@ -110,6 +121,13 @@ impl ConnectionPage {
                     self.snapshot = Some(path);
                 }
                 Update::ActionSubmitted(message) => self.feedback = Some((true, message)),
+                Update::ActionFeedback(receipt) => {
+                    let error = receipt.error.as_deref().unwrap_or_default();
+                    self.feedback = Some((
+                        receipt.error.is_none(),
+                        format!("{} · {} {error}", receipt.status.label(), receipt.action),
+                    ));
+                }
                 Update::Notice(message) => {
                     notifications.record("session_notice", &message);
                     self.feedback = Some((false, message));
@@ -137,6 +155,13 @@ impl ConnectionPage {
                 path_field(ui, "CK3 安装目录", &mut settings.game_dir, true);
                 path_field(ui, "房间配置文件", &mut settings.profile_path, false);
                 ui.checkbox(&mut settings.join_game, "尝试游戏内热加入");
+                if settings.join_game {
+                    ui.horizontal(|ui| {
+                        ui.label("快照传输");
+                        ui.selectable_value(&mut settings.transfer, TransferMode::Fast, "快速");
+                        ui.selectable_value(&mut settings.transfer, TransferMode::Serial, "串行");
+                    });
+                }
                 ui.columns(2, |columns| {
                     let [player, identity] = columns else {
                         unreachable!()

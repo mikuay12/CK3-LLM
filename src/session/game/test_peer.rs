@@ -1,12 +1,14 @@
 use super::*;
 use crate::host::backend::LocalBackend;
 use crate::session::{
-    EXE_SHA256, SessionTask,
+    ActionStatus, EXE_SHA256, SessionTask,
     native::{Event, NakamaSdk, WireFormat},
 };
 use crate::settings::{ConnectionSettings, write_json};
 use reqwest::blocking::Client;
 use serde_json::{Value, json};
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 const SNAPSHOT: &[u8] = include_bytes!("../../../tests/fixtures/hotjoin-fixture.zip");
 const SNAPSHOT_CHECKSUM: i32 = 1_508_336_786;
@@ -24,6 +26,11 @@ fn snapshot_checksum_matches_the_reference_encoder() {
 #[test]
 #[ignore = "requires the original Nakama DLL from a Windows CK3 installation"]
 fn rust_client_hotjoins_receives_snapshot_and_submits_player_controls() {
+    exercise_room(TransferMode::Fast);
+    exercise_room(TransferMode::Serial);
+}
+
+fn exercise_room(mode: TransferMode) {
     let game_dir = std::env::var_os("CK3_GAME_DIR").map_or_else(
         || PathBuf::from(r"C:\Games\Crusader Kings III"),
         PathBuf::from,
@@ -89,6 +96,7 @@ fn rust_client_hotjoins_receives_snapshot_and_submits_player_controls() {
         game_dir: game_dir.to_string_lossy().into_owned(),
         profile_path: path.to_string_lossy().into_owned(),
         join_game: true,
+        transfer: mode,
         ..Default::default()
     })
     .unwrap();
@@ -101,12 +109,25 @@ fn rust_client_hotjoins_receives_snapshot_and_submits_player_controls() {
         acknowledged_peer: false,
         registered: false,
         ready: false,
-        selected: false,
+        selection_count: 0,
         snapshot_confirmed: false,
         left: false,
+        dropped_serial_chunk: false,
     };
+    let commands = task.actions();
+    let request = ActionRequest {
+        request_id: "test-select".into(),
+        name: "set_character_controller".into(),
+        fields: json!({"machineid":2,"playable":12345})
+            .as_object()
+            .unwrap()
+            .clone(),
+        attribs: 14,
+    };
+    let guard = Arc::new(AtomicBool::new(false));
     let mut snapshot_opened = false;
     let mut stopped = false;
+    let mut echoed = false;
     loop {
         assert!(Instant::now() < deadline, "hotjoin timed out");
         mock.poll();
@@ -119,27 +140,52 @@ fn rust_client_hotjoins_receives_snapshot_and_submits_player_controls() {
                         "Synthetic AI"
                     );
                     snapshot_opened = true;
-                    task.submit_command(
-                        "set_character_controller".into(),
-                        json!({"machineid": 2, "playable": 12345})
-                            .as_object()
-                            .unwrap()
-                            .clone(),
-                        14,
-                    )
-                    .unwrap();
+                    let receipt = commands
+                        .submit(request.clone(), guard.clone())
+                        .unwrap()
+                        .recv_timeout(Duration::from_secs(2))
+                        .unwrap()
+                        .unwrap();
+                    assert_eq!(receipt.status, ActionStatus::Submitted);
                     task.set_ready(true).unwrap();
+                }
+                Update::ActionFeedback(receipt) if receipt.status == ActionStatus::HostEchoed => {
+                    let status = commands
+                        .status(request.request_id.clone())
+                        .unwrap()
+                        .recv_timeout(Duration::from_secs(2))
+                        .unwrap()
+                        .unwrap();
+                    assert_eq!(status.status, ActionStatus::HostEchoed);
+                    if !echoed {
+                        echoed = true;
+                        let duplicate = commands
+                            .submit(request.clone(), guard.clone())
+                            .unwrap()
+                            .recv_timeout(Duration::from_secs(2))
+                            .unwrap()
+                            .unwrap();
+                        assert!(duplicate.duplicate);
+                        assert_eq!(duplicate.identity, receipt.identity);
+                    }
                 }
                 Update::Ended(result) => {
                     result.unwrap();
                     assert!(mock.registered && mock.bitmap_complete && mock.snapshot_confirmed);
-                    assert!(snapshot_opened && mock.selected && mock.ready && mock.left);
+                    assert!(
+                        snapshot_opened
+                            && echoed
+                            && mock.selection_count == 1
+                            && mock.ready
+                            && mock.left
+                    );
+                    assert_eq!(mock.dropped_serial_chunk, mode == TransferMode::Serial);
                     return;
                 }
                 _ => {}
             }
         }
-        if mock.ready && mock.selected && !stopped {
+        if mock.ready && echoed && !stopped {
             task.stop();
             stopped = true;
         }
@@ -156,9 +202,10 @@ struct Peer<'a, 'b> {
     acknowledged_peer: bool,
     registered: bool,
     ready: bool,
-    selected: bool,
+    selection_count: usize,
     snapshot_confirmed: bool,
     left: bool,
+    dropped_serial_chunk: bool,
 }
 
 impl Peer<'_, '_> {
@@ -234,15 +281,60 @@ impl Peer<'_, '_> {
                     self.chunk(target, chunk);
                 }
             }
+            REQUEST_SERIAL_METADATA => {
+                let fields = json!({"filename":"hotjoin_0", "size":SNAPSHOT.len(), "checksum":SNAPSHOT_CHECKSUM,
+                    "sizes":SNAPSHOT.chunks(CHUNK_SIZE).map(<[u8]>::len).collect::<Vec<_>>(),
+                    "checksums":SNAPSHOT.chunks(CHUNK_SIZE).map(Checksum::of).collect::<Vec<_>>(), "machineid":2});
+                let reply = crate::commands::encode(
+                    "filetransfer_send_chunk_metas_command",
+                    fields.as_object().unwrap(),
+                    self.counter as u32,
+                    0,
+                    2,
+                    47,
+                )
+                .unwrap();
+                self.send(target, 0, &reply);
+            }
+            REQUEST_SERIAL_CHUNK => {
+                let chunk = command.number("chunk_id").unwrap() as usize;
+                if chunk == 1 && !self.dropped_serial_chunk {
+                    self.dropped_serial_chunk = true;
+                } else {
+                    self.chunk_as(target, chunk, SERIAL_CHUNK);
+                }
+            }
+            ACK_SERIAL_CHUNK => {
+                self.bitmap_complete = command.number("chunks_completed").unwrap()
+                    == command.number("chunks_total").unwrap()
+            }
             PLAYER_HERE => self.snapshot_confirmed = command.number("machineid").unwrap() == 2,
-            SELECT_CHARACTER => self.selected = command.number("playable").unwrap() == 12345,
+            SELECT_CHARACTER => {
+                assert_eq!(command.number("playable").unwrap(), 12345);
+                self.selection_count += 1;
+                let identity = command.identity().unwrap();
+                for character in [111, 12345] {
+                    let mut body = Writer::default();
+                    body.signed(0x16, 2);
+                    body.unsigned(0x6df, character);
+                    self.send(
+                        target,
+                        0,
+                        &Writer::command(SELECT_CHARACTER, identity, 2, 2, 14, body),
+                    );
+                }
+            }
             READY => self.ready = command.get("status").unwrap() == true,
             _ => {}
         }
     }
 
     fn chunk(&mut self, target: &Presence, id: usize) {
-        self.transfer(target, CHUNK, |body| {
+        self.chunk_as(target, id, CHUNK);
+    }
+
+    fn chunk_as(&mut self, target: &Presence, id: usize, token: u16) {
+        self.transfer(target, token, |body| {
             body.signed(0x6ca, id as i32);
             body.data(&SNAPSHOT[id * CHUNK_SIZE..((id + 1) * CHUNK_SIZE).min(SNAPSHOT.len())]);
         });

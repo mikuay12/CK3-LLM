@@ -30,6 +30,136 @@ fn catalog() -> &'static Catalog {
     })
 }
 
+pub(crate) fn interaction_spec(name: &str) -> Option<(Option<&'static str>, Vec<&'static str>)> {
+    let catalog = catalog();
+    let special = catalog.names.get(name)?.as_deref();
+    let parameters = special
+        .and_then(|key| catalog.payloads.get(key))
+        .map_or_else(Vec::new, |spec| {
+            spec.fields
+                .iter()
+                .map(|field| field.name.as_str())
+                .collect()
+        });
+    Some((special, parameters))
+}
+
+pub(crate) fn build_interaction(
+    parameters: &serde_json::Map<String, Value>,
+    actor: u32,
+    target_type: Option<&str>,
+    options: &[(String, String)],
+) -> Result<Value> {
+    let name = nonempty(required(parameters, "interaction")?, "interaction")?;
+    let (special, _) = interaction_spec(name).context("未支持的人物互动")?;
+    let character = |key: &str| -> Result<u32> {
+        parameters
+            .get(key)
+            .map(unsigned)
+            .transpose()
+            .map(|id| id.unwrap_or(u32::MAX))
+    };
+    let recipient = character("recipient")?;
+    ensure!(recipient != u32::MAX, "互动需要接收者");
+    let secondary_actor = character("secondary_actor")?;
+    let secondary_recipient = character("secondary_recipient")?;
+    if name == "arrange_marriage_interaction" {
+        ensure!(
+            secondary_actor != u32::MAX && secondary_recipient != u32::MAX,
+            "婚姻互动需要双方拟婚角色"
+        );
+    }
+    let target = parameters.get("target").filter(|value| !value.is_null());
+    let expected = match target_type {
+        Some("title") => Some("landed_title"),
+        Some("artifact") => Some("artifact"),
+        Some("court_position_type") => Some("court_position_type"),
+        None => None,
+        Some(kind) => anyhow::bail!("暂不支持互动目标类型 {kind}"),
+    };
+    if let Some(expected) = expected {
+        let target = target.context("互动缺少目标")?;
+        ensure!(
+            target["type"] == expected && target["identity"].as_u64().is_some(),
+            "互动需要 {expected} 类型的目标及其编号"
+        );
+    }
+    let end_war = matches!(
+        special,
+        Some(
+            "end_war_attacker_victory_interaction"
+                | "end_war_white_peace_interaction"
+                | "end_war_attacker_defeat_interaction"
+        )
+    ) && target.is_some_and(|value| value["type"] == "war");
+    let reference = |id| json!({"type":"char", "identity":id});
+    let mut scopes = json!({"actor":reference(actor), "recipient":reference(recipient),
+        "secondary_actor":reference(secondary_actor), "secondary_recipient":reference(secondary_recipient),
+        "intermediary":reference(u32::MAX), "puppet_or_actor":reference(actor), "is_puppet_action":{"type":"boolean"}});
+    if let Some(target) = target {
+        scopes[if end_war { "war" } else { "target" }] = target.clone();
+    }
+    let flags = parameters
+        .get("option_flags")
+        .filter(|value| !value.is_null())
+        .map(|value| value.as_object().context("互动选项需要具名布尔值"))
+        .transpose()?;
+    if let Some(flags) = flags {
+        for key in flags.keys() {
+            ensure!(
+                options.iter().any(|(name, _)| name == key),
+                "未知的互动选项 {key}"
+            );
+        }
+    }
+    let mut ordered = Vec::with_capacity(options.len());
+    for (key, _) in options {
+        ensure!(
+            scopes.get(key).is_none() && key != "target",
+            "互动选项与作用域重名 {key}"
+        );
+        let set = flags
+            .and_then(|flags| flags.get(key))
+            .map(|value| value.as_bool().context("互动选项需要布尔值"))
+            .transpose()?
+            .unwrap_or(false);
+        ordered.push(set);
+        scopes[key] = if set {
+            json!({"type":"boolean", "identity":1})
+        } else {
+            json!({"type":"boolean"})
+        };
+    }
+    let mut data = json!({"character_interaction":name, "actor":actor, "recipient":recipient,
+        "secondary_actor":secondary_actor, "secondary_recipient":secondary_recipient, "intermediary":u32::MAX,
+        "puppet_or_actor":actor, "scope":{"root":target.filter(|_| end_war).cloned().unwrap_or_else(|| json!({})),
+        "seed":-1, "event_targets":scopes}, "original_scope":{"root":{}, "seed":-1}, "options":ordered});
+    if let Some(target) = target.filter(|_| !end_war) {
+        data["target"] = target.clone();
+    }
+    let payload = parameters
+        .get("special_fields")
+        .filter(|value| !value.is_null());
+    if let Some(special) = special.filter(|key| catalog().payloads.contains_key(*key)) {
+        data[special] = payload.cloned().unwrap_or_else(|| match (special, target) {
+            ("revoke_title_interaction" | "diarch_revoke_title", Some(target)) => {
+                json!({"title":target["identity"]})
+            }
+            ("grant_titles_interaction" | "grant_governorship_interaction", Some(target)) => {
+                json!({"titles":[target["identity"]]})
+            }
+            _ => json!({}),
+        });
+    } else if let Some(payload) = payload {
+        ensure!(
+            payload.as_object().is_some_and(serde_json::Map::is_empty),
+            "此互动没有特化载荷"
+        );
+    }
+    encode(&data)?;
+    Ok(data)
+}
+
 pub(super) fn encode(value: &Value) -> Result<Vec<u8>> {
     let object = value.as_object().context("人物互动需要对象")?;
     let name = nonempty(

@@ -4,6 +4,8 @@ mod host;
 mod memory;
 mod model;
 mod notifications;
+mod player;
+mod replay;
 mod style;
 mod world;
 
@@ -19,9 +21,11 @@ enum Page {
     Host,
     Connection,
     World,
+    Replay,
     Notifications,
     Model,
     Chat,
+    Player,
     Memory,
 }
 
@@ -31,9 +35,11 @@ impl Page {
             Self::Host => "本地房主",
             Self::Connection => "房间连接",
             Self::World => "世界查询",
+            Self::Replay => "抓包回放",
             Self::Notifications => "通知",
             Self::Model => "模型设置",
             Self::Chat => "模型对话",
+            Self::Player => "自动游玩",
             Self::Memory => "记忆",
         }
     }
@@ -47,8 +53,10 @@ pub struct Desktop {
     host: host::HostPage,
     connection: connection::ConnectionPage,
     world: world::WorldPage,
+    replay: replay::ReplayPage,
     notifications: notifications::NotificationsPage,
     model: model::ModelPage,
+    player: player::PlayerPage,
     memory: memory::MemoryPage,
 }
 
@@ -63,8 +71,10 @@ impl Desktop {
             host: host::HostPage::default(),
             connection: connection::ConnectionPage::default(),
             world: world::WorldPage::default(),
+            replay: replay::ReplayPage::default(),
             notifications: notifications::NotificationsPage::open(),
             model: model::ModelPage::default(),
+            player: player::PlayerPage::default(),
             memory: memory::MemoryPage::open(),
         };
         if let Err(error) = app.load_settings() {
@@ -109,9 +119,11 @@ impl Desktop {
                     Page::Host,
                     Page::Connection,
                     Page::World,
+                    Page::Replay,
                     Page::Notifications,
                     Page::Model,
                     Page::Chat,
+                    Page::Player,
                     Page::Memory,
                 ] {
                     let selected = self.page == page;
@@ -158,8 +170,24 @@ impl eframe::App for Desktop {
         self.connection.poll(&mut self.notifications);
         self.model.poll();
         self.world.poll();
+        self.replay.poll();
         self.notifications.poll(self.world.live());
-        if self.host.busy() || self.connection.busy() || self.model.busy() || self.world.busy() {
+        let play = self
+            .connection
+            .play_session(self.settings.connection.username.trim());
+        self.player.poll(
+            self.world.live(),
+            play.as_ref(),
+            &mut self.notifications,
+            &mut self.memory,
+        );
+        if self.host.busy()
+            || self.connection.busy()
+            || self.model.busy()
+            || self.world.busy()
+            || self.replay.busy()
+            || self.player.busy()
+        {
             context.request_repaint_after(Duration::from_millis(60));
         } else if self.world.has_live_game() {
             context.request_repaint_after(Duration::from_secs(1));
@@ -211,7 +239,22 @@ impl eframe::App for Desktop {
                                     self.page = Page::World;
                                 }
                             }
-                            Page::World => self.world.show(ui, self.host.pid()),
+                            Page::World => self.world.show(
+                                ui,
+                                self.host.pid(),
+                                std::path::Path::new(&self.settings.connection.game_dir),
+                            ),
+                            Page::Replay => {
+                                if let Some(selection) = self.replay.show(ui) {
+                                    match selection {
+                                        replay::Selection::Snapshot(path) => self.world.open(path),
+                                        replay::Selection::Database(path) => {
+                                            self.world.open_store(path)
+                                        }
+                                    }
+                                    self.page = Page::World;
+                                }
+                            }
                             Page::Notifications => self.notifications.show(
                                 ui,
                                 self.world.live(),
@@ -226,6 +269,13 @@ impl eframe::App for Desktop {
                                 self.world.source_name(),
                             ),
                             Page::Memory => self.memory.show(ui),
+                            Page::Player => self.player.show(
+                                ui,
+                                &self.settings.model,
+                                self.model.api_key(),
+                                self.world.live(),
+                                play,
+                            ),
                         }
                     });
             });

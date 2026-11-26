@@ -1,5 +1,7 @@
 pub(crate) mod binary;
 pub mod live;
+pub mod scripts;
+pub mod store;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -8,7 +10,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result, bail, ensure};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use zip::ZipArchive;
@@ -17,7 +19,7 @@ use binary::{Index, Span, decode, index};
 
 const MAX_WORLD_BYTES: u64 = 1 << 30;
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryKind {
     #[default]
@@ -25,10 +27,196 @@ pub enum QueryKind {
     Character,
     Title,
     Province,
+    War,
+    Army,
+    Unit,
+    UnitMovement,
+    Combat,
+    CombatResult,
+    Siege,
+    Regiment,
+    ArmyRegiment,
+    MercenaryCompany,
+    HoldingBuildings,
+    Adjacencies,
+    Interaction,
+    Decision,
+    ActivityType,
+    CouncilTaskType,
+    CourtPositionType,
+    CourtPositionTask,
+    SchemeCountermeasure,
+    Law,
+    MenAtArmsType,
+    NotificationType,
+    EventDefinition,
+    Event,
+    IncomingInteraction,
+    ActivityInvitation,
+    Activity,
+    CouncilTask,
+    Faction,
+    Scheme,
+    CourtPosition,
+    HolyOrder,
+    Secret,
+    TaskContract,
+    Contract,
+    Realm,
+    Titles,
+    Realms,
+    Alerts,
+    PlayerMessages,
+    MessageFeed,
+    PlayerSuccessions,
+    ProvinceMap,
+    Route,
+    Neighbors,
+    Borders,
+    WarTheater,
+    BuildingType,
+    ConstructionQuote,
+    CasusBelli,
+    DeclarationPreview,
+    Relations,
+    Opinions,
+    ObservedCommands,
 }
 
 impl QueryKind {
+    pub const SNAPSHOT: &'static [Self] =
+        &[Self::Summary, Self::Character, Self::Title, Self::Province];
+    pub const LIVE: &'static [Self] = &[
+        Self::Summary,
+        Self::Character,
+        Self::Title,
+        Self::Province,
+        Self::War,
+        Self::Army,
+        Self::Unit,
+        Self::UnitMovement,
+        Self::Combat,
+        Self::CombatResult,
+        Self::Siege,
+        Self::Regiment,
+        Self::ArmyRegiment,
+        Self::MercenaryCompany,
+        Self::HoldingBuildings,
+        Self::Adjacencies,
+        Self::Interaction,
+        Self::Decision,
+        Self::ActivityType,
+        Self::CouncilTaskType,
+        Self::CourtPositionType,
+        Self::CourtPositionTask,
+        Self::SchemeCountermeasure,
+        Self::Law,
+        Self::MenAtArmsType,
+        Self::NotificationType,
+        Self::EventDefinition,
+        Self::Event,
+        Self::IncomingInteraction,
+        Self::ActivityInvitation,
+        Self::Activity,
+        Self::CouncilTask,
+        Self::Faction,
+        Self::Scheme,
+        Self::CourtPosition,
+        Self::HolyOrder,
+        Self::Secret,
+        Self::TaskContract,
+        Self::Contract,
+        Self::Realm,
+        Self::Titles,
+        Self::Realms,
+        Self::Alerts,
+        Self::PlayerMessages,
+        Self::MessageFeed,
+        Self::PlayerSuccessions,
+        Self::ProvinceMap,
+        Self::Route,
+        Self::Neighbors,
+        Self::Borders,
+        Self::WarTheater,
+        Self::BuildingType,
+        Self::ConstructionQuote,
+        Self::CasusBelli,
+        Self::DeclarationPreview,
+        Self::Relations,
+        Self::Opinions,
+    ];
+
     pub fn request(self, id: &str) -> Result<Query<'_>> {
+        self.request_for(id, None)
+    }
+
+    pub fn uses_character(self) -> bool {
+        matches!(
+            self,
+            Self::Province
+                | Self::Decision
+                | Self::ActivityType
+                | Self::Event
+                | Self::IncomingInteraction
+                | Self::ActivityInvitation
+                | Self::Activity
+                | Self::Alerts
+                | Self::PlayerMessages
+                | Self::Titles
+                | Self::WarTheater
+                | Self::ConstructionQuote
+                | Self::DeclarationPreview
+                | Self::Relations
+                | Self::Opinions
+        ) || self.is_entity()
+    }
+
+    pub fn is_entity(self) -> bool {
+        matches!(
+            self,
+            Self::CouncilTask
+                | Self::Faction
+                | Self::Scheme
+                | Self::CourtPosition
+                | Self::HolyOrder
+                | Self::Secret
+                | Self::TaskContract
+                | Self::Contract
+                | Self::MercenaryCompany
+        )
+    }
+
+    pub fn is_collection(self) -> bool {
+        self.is_entity()
+            || matches!(
+                self,
+                Self::Titles
+                    | Self::Realms
+                    | Self::Alerts
+                    | Self::PlayerMessages
+                    | Self::MessageFeed
+                    | Self::Activity
+                    | Self::PlayerSuccessions
+            )
+    }
+
+    pub(crate) fn collection_alias(name: &str) -> Option<Self> {
+        Some(match name {
+            "council_tasks" => Self::CouncilTask,
+            "factions" => Self::Faction,
+            "schemes" => Self::Scheme,
+            "court_positions" => Self::CourtPosition,
+            "holy_orders" => Self::HolyOrder,
+            "secrets" => Self::Secret,
+            "task_contracts" => Self::TaskContract,
+            "contracts" => Self::Contract,
+            "mercenary_companies" => Self::MercenaryCompany,
+            "activities" => Self::Activity,
+            _ => return None,
+        })
+    }
+
+    pub fn request_for(self, id: &str, character: Option<u32>) -> Result<Query<'_>> {
         Ok(match self {
             Self::Summary => Query::Summary,
             Self::Character => Query::Character(id.parse().context("人物 ID 需要是整数")?),
@@ -36,7 +224,129 @@ impl QueryKind {
                 ensure!(!id.is_empty(), "请输入头衔 ID 或脚本键");
                 Query::Title(id)
             }
-            Self::Province => Query::Province(id.parse().context("省份 ID 需要是整数")?),
+            Self::Realm => {
+                ensure!(!id.is_empty(), "请输入领主 ID 或头衔脚本键");
+                Query::Realm(id)
+            }
+            Self::ProvinceMap => Query::ProvinceMap(id.parse().context("省份 ID 需要是整数")?),
+            Self::Route => {
+                let (origin, target) = id
+                    .split_once(',')
+                    .context("请输入起点和终点省份 ID，以逗号分隔")?;
+                Query::Navigation(Navigation::Route {
+                    origin: origin.trim().parse()?,
+                    target: target.trim().parse()?,
+                    speed: None,
+                    unit: None,
+                    include_straits: true,
+                    max_nodes: 20_000,
+                })
+            }
+            kind @ (Self::Neighbors | Self::Borders) => {
+                ensure!(!id.is_empty(), "请输入领主 ID 或头衔脚本键");
+                Query::Navigation(Navigation::Borders {
+                    realm: id,
+                    other: None,
+                    neighbors: kind == Self::Neighbors,
+                    include_straits: false,
+                    offset: 0,
+                    limit: 20,
+                })
+            }
+            Self::WarTheater => Query::Navigation(Navigation::Theater {
+                war: id.parse()?,
+                character,
+                max_armies: 8,
+                max_targets: 8,
+                max_nodes: 4000,
+            }),
+            Self::BuildingType if id.is_empty() => Query::BuildingTypes {
+                search: "",
+                offset: 0,
+                limit: 20,
+            },
+            Self::BuildingType => Query::BuildingType(id),
+            Self::ConstructionQuote => {
+                let parts: Vec<_> = id.split(',').map(str::trim).collect();
+                let [province, building, slot @ ..] = parts.as_slice() else {
+                    bail!("请输入省份 ID、建筑键及可选槽位，以逗号分隔");
+                };
+                ensure!(slot.len() <= 1 && !building.is_empty(), "建筑报价参数无效");
+                Query::ConstructionQuote {
+                    province: province.parse()?,
+                    building,
+                    character,
+                    slot: slot.first().map(|slot| slot.parse()).transpose()?,
+                    treasury: false,
+                }
+            }
+            Self::DeclarationPreview => {
+                let (target, cb) = id
+                    .split_once(',')
+                    .context("请输入目标角色 ID 和宣战理由键，以逗号分隔")?;
+                Query::Declaration {
+                    actor: character,
+                    target: target.trim().parse()?,
+                    casus_belli: cb.trim(),
+                    titles: &[],
+                    claimant: u32::MAX,
+                }
+            }
+            kind @ (Self::Relations | Self::Opinions) => Query::People {
+                kind,
+                id: id.parse()?,
+                other: character,
+                offset: 0,
+                limit: 20,
+            },
+            Self::Province => {
+                let province = id.parse().context("省份 ID 需要是整数")?;
+                match character {
+                    Some(character) => Query::ProvinceSupply {
+                        province,
+                        character,
+                    },
+                    None => Query::Province(province),
+                }
+            }
+            kind if kind.is_collection()
+                && (id.is_empty() || !kind.is_entity() && kind != Self::Activity) =>
+            {
+                Query::Entities(EntityList {
+                    kind,
+                    character,
+                    search: id,
+                    offset: 0,
+                    limit: 20,
+                    include_inactive: false,
+                })
+            }
+            kind @ (Self::Event
+            | Self::IncomingInteraction
+            | Self::ActivityInvitation
+            | Self::Activity) => Query::Pending {
+                kind,
+                id: id.parse().context("查询 ID 需要是整数")?,
+                character,
+            },
+            kind if kind.is_script() && id.is_empty() => Query::ScriptList {
+                kind,
+                search: "",
+                group: None,
+                offset: 0,
+                limit: 20,
+            },
+            kind if kind.is_script() => Query::Script {
+                kind,
+                id,
+                character,
+            },
+            Self::ObservedCommands => Query::ObservedCommands {
+                name: id,
+                offset: 0,
+                limit: 20,
+            },
+            kind => Query::Native(kind, id.parse().context("查询 ID 需要是整数")?),
         })
     }
 }
@@ -46,11 +356,126 @@ pub enum Query<'a> {
     Summary,
     Character(u32),
     Title(&'a str),
+    Realm(&'a str),
     Province(u32),
+    ProvinceSupply {
+        province: u32,
+        character: u32,
+    },
+    Native(QueryKind, u32),
+    Military {
+        kind: MilitaryList,
+        character: u32,
+        offset: usize,
+        limit: usize,
+    },
+    Script {
+        kind: QueryKind,
+        id: &'a str,
+        character: Option<u32>,
+    },
+    ScriptList {
+        kind: QueryKind,
+        search: &'a str,
+        group: Option<&'a str>,
+        offset: usize,
+        limit: usize,
+    },
+    Pending {
+        kind: QueryKind,
+        id: u32,
+        character: Option<u32>,
+    },
+    ObservedCommands {
+        name: &'a str,
+        offset: usize,
+        limit: usize,
+    },
+    Entities(EntityList<'a>),
+    ProvinceMap(u32),
+    Navigation(Navigation<'a>),
+    BuildingType(&'a str),
+    BuildingTypes {
+        search: &'a str,
+        offset: usize,
+        limit: usize,
+    },
+    ConstructionQuote {
+        province: u32,
+        building: &'a str,
+        character: Option<u32>,
+        slot: Option<i32>,
+        treasury: bool,
+    },
+    Declaration {
+        actor: Option<u32>,
+        target: u32,
+        casus_belli: &'a str,
+        titles: &'a [u32],
+        claimant: u32,
+    },
+    People {
+        kind: QueryKind,
+        id: u32,
+        other: Option<u32>,
+        offset: usize,
+        limit: usize,
+    },
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Navigation<'a> {
+    Route {
+        origin: u32,
+        target: u32,
+        speed: Option<f64>,
+        unit: Option<u32>,
+        include_straits: bool,
+        max_nodes: usize,
+    },
+    Borders {
+        realm: &'a str,
+        other: Option<&'a str>,
+        neighbors: bool,
+        include_straits: bool,
+        offset: usize,
+        limit: usize,
+    },
+    Theater {
+        war: u32,
+        character: Option<u32>,
+        max_armies: usize,
+        max_targets: usize,
+        max_nodes: usize,
+    },
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct EntityList<'a> {
+    pub kind: QueryKind,
+    pub character: Option<u32>,
+    pub search: &'a str,
+    pub offset: usize,
+    pub limit: usize,
+    pub include_inactive: bool,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MilitaryList {
+    Wars,
+    Armies,
+    Combats,
+    CombatResults,
+    Sieges,
 }
 
 pub trait QuerySource: Send + Sync {
     fn query(&self, request: Query<'_>) -> Result<Value>;
+
+    fn kinds(&self) -> &'static [QueryKind] {
+        QueryKind::SNAPSHOT
+    }
 }
 
 pub struct World {
@@ -206,7 +631,43 @@ impl QuerySource for World {
             Query::Character(id) => self.character(id),
             Query::Title(id) => self.title(id),
             Query::Province(id) => self.province(id),
+            Query::Native(..)
+            | Query::Military { .. }
+            | Query::Pending { .. }
+            | Query::ProvinceSupply { .. }
+            | Query::Realm(_)
+            | Query::Entities(_)
+            | Query::Navigation(_)
+            | Query::BuildingType(_)
+            | Query::BuildingTypes { .. }
+            | Query::ConstructionQuote { .. }
+            | Query::Declaration { .. }
+            | Query::People { .. } => bail!("此查询需要实时游戏"),
+            Query::ProvinceMap(_) => bail!("此查询需要游戏安装目录"),
+            Query::Script { .. } | Query::ScriptList { .. } => bail!("此查询需要游戏安装目录"),
+            Query::ObservedCommands { .. } => bail!("此查询需要回放数据库"),
         }
+    }
+}
+
+pub(crate) fn date_text(raw: u32) -> String {
+    let days = raw / 24;
+    let year = (days / 365) as i32 - 5000;
+    let mut day = days % 365;
+    let mut month = 1;
+    for length in [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30] {
+        if day < length {
+            break;
+        }
+        day -= length;
+        month += 1;
+    }
+    let date = format!("{year}.{month}.{}", day + 1);
+    let hour = raw % 24;
+    if hour == 0 {
+        date
+    } else {
+        format!("{date} {hour:02}:00")
     }
 }
 

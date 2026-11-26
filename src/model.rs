@@ -1,14 +1,17 @@
-use std::env;
-use std::io::Read;
+mod actions;
+pub mod player;
+mod transport;
+
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, ensure};
-use reqwest::{Url, blocking::Client};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::settings::ModelSettings;
-use crate::world::{QueryKind, QuerySource};
+use crate::world::{EntityList, Navigation, Query, QueryKind, QuerySource};
+
+use transport::Transport;
 
 #[derive(Clone, Copy, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -108,62 +111,19 @@ fn complete(
     max_timeout: Option<Duration>,
     world: Option<&dyn QuerySource>,
 ) -> Result<Reply> {
-    let endpoint = Url::parse(settings.endpoint.trim()).context("模型 API 地址无效")?;
-    ensure!(
-        matches!(endpoint.scheme(), "http" | "https")
-            && endpoint.has_host()
-            && endpoint.username().is_empty()
-            && endpoint.password().is_none(),
-        "模型 API 地址必须是 HTTP(S) 地址"
-    );
-    let model = settings.model.trim();
-    ensure!(!model.is_empty(), "请填写模型名称");
-    let timeout = Duration::try_from_secs_f64(settings.request_timeout).context("请求超时无效")?;
-    ensure!(!timeout.is_zero(), "请求超时必须大于零");
-    let timeout = max_timeout.map_or(timeout, |limit| timeout.min(limit));
-    let env_key = settings
-        .api_key_env
-        .as_deref()
-        .and_then(|name| env::var(name.trim()).ok());
-    let key = if key.trim().is_empty() {
-        env_key.as_deref().unwrap_or_default()
-    } else {
-        key
-    };
-
-    let client = Client::builder()
-        .timeout(timeout)
-        .build()
-        .context("创建模型 HTTP 客户端")?;
-    let mut body = json!({
-        "model": model,
-        "messages": messages,
-        "stream": false,
-    });
-    if world.is_some() {
-        body["tools"] = json!([{
-            "type": "function",
-            "function": {
-                "name": "game_query",
-                "description": "Query the CK3 world source selected by the user. Use summary for live game date, tick and players, or for snapshot metadata. Query a character, landed title, or province by ID. A landed title also accepts its script key. Live results carry their game date and tick.",
-                "parameters": { "type": "object", "properties": {
-                    "kind": { "type": "string", "enum": ["summary", "character", "title", "province"] },
-                    "id": { "type": ["string", "integer"] }
-                }, "required": ["kind"], "additionalProperties": false }
-            }
-        }]);
+    let client = Transport::new(settings, key, max_timeout)?;
+    let mut body = client.body(json!(messages));
+    if let Some(world) = world {
+        body["tools"] = json!([query_schema(world.kinds())]);
     }
     let started = Instant::now();
     for round in 0..=6 {
-        let remaining = timeout
+        let remaining = client
+            .timeout
             .checked_sub(started.elapsed())
             .filter(|value| !value.is_zero())
             .context("模型请求超时")?;
-        let mut request = client.post(endpoint.clone()).timeout(remaining).json(&body);
-        if !key.trim().is_empty() {
-            request = request.bearer_auth(key.trim());
-        }
-        let (message, status) = request_message(request)?;
+        let (message, status) = client.request(&body, remaining)?;
         if message.tool_calls.is_empty() {
             let content = message
                 .content
@@ -183,45 +143,57 @@ fn complete(
         let messages = body["messages"]
             .as_array_mut()
             .expect("serialized message array");
-        messages.push(json!({"role": "assistant", "content": message.content, "tool_calls": message.tool_calls}));
+        messages.push(assistant_message(&message));
         for tool in &message.tool_calls {
             let result =
                 query(world, tool).unwrap_or_else(|error| json!({"error": format!("{error:#}")}));
-            let content = result.to_string();
-            let excerpt: String = content.chars().take(6000).collect();
-            let text = if excerpt.len() < content.len() {
-                json!({"truncated": true, "excerpt": excerpt}).to_string()
-            } else {
-                content
-            };
-            messages.push(json!({"role": "tool", "tool_call_id": tool.id, "content": text}));
+            messages.push(tool_message(
+                tool,
+                result_text(&result, settings.max_query_chars),
+            ));
         }
     }
     unreachable!("the last request cannot start another tool round")
 }
 
-fn request_message(request: reqwest::blocking::RequestBuilder) -> Result<(AssistantMessage, u16)> {
-    let response = request
-        .send()
-        .map_err(reqwest::Error::without_url)
-        .context("模型请求失败")?;
-    let status = response.status();
-    ensure!(status.is_success(), "模型服务返回 HTTP {}", status.as_u16());
-    const RESPONSE_LIMIT: u64 = 4 * 1024 * 1024;
-    let mut body = Vec::new();
-    response
-        .take(RESPONSE_LIMIT + 1)
-        .read_to_end(&mut body)
-        .context("读取模型回复失败")?;
-    ensure!(body.len() as u64 <= RESPONSE_LIMIT, "模型回复超过 4 MiB");
-    let parsed: ChatResponse = serde_json::from_slice(&body).context("模型回复格式无效")?;
-    let message = parsed
-        .choices
-        .into_iter()
-        .next()
-        .context("模型回复没有候选消息")?
-        .message;
-    Ok((message, status.as_u16()))
+fn assistant_message(message: &AssistantMessage) -> Value {
+    if message.tool_calls.is_empty() {
+        json!({"role": "assistant", "content": message.content})
+    } else {
+        json!({"role": "assistant", "content": message.content, "tool_calls": message.tool_calls})
+    }
+}
+
+fn result_text(value: &Value, limit: usize) -> String {
+    let text = value.to_string();
+    let Some((end, _)) = text.char_indices().nth(limit) else {
+        return text;
+    };
+    let excerpt = &text[..end];
+    let full = json!({"truncated": true, "excerpt": excerpt}).to_string();
+    if full.chars().count() <= limit {
+        full
+    } else {
+        let tail = "…";
+        excerpt
+            .chars()
+            .take(limit.saturating_sub(1))
+            .chain(tail.chars())
+            .collect()
+    }
+}
+
+fn tool_message(tool: &ToolCall, text: String) -> Value {
+    json!({"role": "tool", "tool_call_id": tool.id, "content": text})
+}
+
+fn query_schema(kinds: &[QueryKind]) -> Value {
+    json!({"type":"function", "function": {
+        "name": "game_query", "description": "Query the selected CK3 world. Use summary for the game date and players. Use an object's numeric ID, or a landed title script key.",
+        "parameters": {"type":"object", "properties": {"kind":{"type":"string", "enum":kinds}, "id":{"type":["string", "integer"]},
+            "search":{"type":"string"}, "group":{"type":"string"}, "offset":{"type":"integer", "minimum":0},
+            "limit":{"type":"integer", "minimum":1, "maximum":100}, "character":{"type":"integer", "minimum":0}}, "required":["kind"], "additionalProperties":false},
+    }})
 }
 
 fn query(world: &dyn QuerySource, call: &ToolCall) -> Result<Value> {
@@ -231,16 +203,206 @@ fn query(world: &dyn QuerySource, call: &ToolCall) -> Result<Value> {
     );
     let arguments: Value =
         serde_json::from_str(&call.function.arguments).context("查询参数无法解析")?;
-    let kind: QueryKind =
-        serde_json::from_value(arguments["kind"].clone()).context("查询类别无效")?;
+    point_query(world, &arguments)
+}
+
+fn point_query(world: &dyn QuerySource, arguments: &Value) -> Result<Value> {
+    let name = arguments["kind"].as_str().context("查询类别无效")?;
+    if name == "building_types" || name == "building_type" && arguments.get("id").is_none() {
+        return world.query(Query::BuildingTypes {
+            search: arguments["search"].as_str().unwrap_or_default(),
+            offset: optional(arguments, "offset")?.unwrap_or(0),
+            limit: optional(arguments, "limit")?.unwrap_or(20),
+        });
+    }
+    if let Some(kind) = QueryKind::script_list(name) {
+        return script_list(world, kind, arguments);
+    }
+    if let Some(kind) = QueryKind::collection_alias(name) {
+        return entity_list(world, kind, arguments);
+    }
+    let kind: QueryKind = serde_json::from_value(name.into()).context("查询类别无效")?;
     if kind == QueryKind::Summary {
         return world.query(kind.request("")?);
     }
-    let id = &arguments["id"];
-    let id = id
+    if matches!(kind, QueryKind::Relations | QueryKind::Opinions) {
+        return world.query(Query::People {
+            kind,
+            id: serde_json::from_value(arguments["id"].clone()).context("需要角色编号")?,
+            other: optional(
+                arguments,
+                if kind == QueryKind::Relations {
+                    "other"
+                } else {
+                    "owner"
+                },
+            )?,
+            offset: optional(arguments, "offset")?.unwrap_or(0),
+            limit: optional(arguments, "limit")?.unwrap_or(20),
+        });
+    }
+    if kind == QueryKind::ConstructionQuote && arguments.get("building").is_some() {
+        let key = reference_key(&arguments["building"]).context("需要建筑键或编号")?;
+        return world.query(Query::ConstructionQuote {
+            province: serde_json::from_value(arguments["id"].clone()).context("需要省份编号")?,
+            building: &key,
+            character: optional(arguments, "character")?,
+            slot: optional(arguments, "index")?,
+            treasury: arguments["use_treasury"] == true,
+        });
+    }
+    if kind == QueryKind::DeclarationPreview && arguments.get("target").is_some() {
+        let titles: Vec<u32> = optional(arguments, "titles")?.unwrap_or_default();
+        return world.query(Query::Declaration {
+            actor: optional(arguments, "character")?,
+            target: serde_json::from_value(arguments["target"].clone())
+                .context("需要目标角色编号")?,
+            casus_belli: arguments["casus_belli"]
+                .as_str()
+                .context("需要宣战理由脚本键")?,
+            titles: &titles,
+            claimant: optional(arguments, "claimant")?.unwrap_or(u32::MAX),
+        });
+    }
+    if kind == QueryKind::Route && arguments.get("origin").is_some() {
+        return world.query(Query::Navigation(Navigation::Route {
+            origin: serde_json::from_value(arguments["origin"].clone())
+                .context("需要起点省份编号")?,
+            target: serde_json::from_value(arguments["target"].clone())
+                .context("需要目标省份编号")?,
+            speed: arguments["speed"].as_f64(),
+            unit: optional(arguments, "unit_id")?,
+            include_straits: arguments["include_straits"].as_bool().unwrap_or(true),
+            max_nodes: optional(arguments, "max_nodes")?.unwrap_or(20_000),
+        }));
+    }
+    if kind == QueryKind::WarTheater {
+        return world.query(Query::Navigation(Navigation::Theater {
+            war: serde_json::from_value(arguments["id"].clone()).context("需要战争编号")?,
+            character: optional(arguments, "character")?,
+            max_armies: optional(arguments, "max_armies")?.unwrap_or(8),
+            max_targets: optional(arguments, "max_targets")?.unwrap_or(8),
+            max_nodes: optional(arguments, "max_nodes")?.unwrap_or(4000),
+        }));
+    }
+    if matches!(kind, QueryKind::Borders | QueryKind::Neighbors) {
+        let id = reference_key(&arguments["id"]).context("需要领主编号或头衔脚本键")?;
+        let other = reference_key(&arguments["other"]);
+        return world.query(Query::Navigation(Navigation::Borders {
+            realm: &id,
+            other: other.as_deref(),
+            neighbors: kind == QueryKind::Neighbors,
+            include_straits: arguments["include_straits"].as_bool().unwrap_or(false),
+            offset: optional(arguments, "offset")?.unwrap_or(0),
+            limit: optional(arguments, "limit")?.unwrap_or(20),
+        }));
+    }
+    if kind.is_collection()
+        && (!kind.is_entity() && kind != QueryKind::Activity || arguments.get("id").is_none())
+    {
+        return entity_list(world, kind, arguments);
+    }
+    if kind == QueryKind::ObservedCommands {
+        return world.query(Query::ObservedCommands {
+            name: arguments["id"].as_str().unwrap_or_default(),
+            offset: arguments
+                .get("offset")
+                .map(|value| serde_json::from_value(value.clone()))
+                .transpose()?
+                .unwrap_or(0),
+            limit: arguments
+                .get("limit")
+                .map(|value| serde_json::from_value(value.clone()))
+                .transpose()?
+                .unwrap_or(20),
+        });
+    }
+    if kind.is_script() {
+        let Some(id) = arguments.get("id") else {
+            return script_list(world, kind, arguments);
+        };
+        let id = id.as_str().context("脚本定义查询需要脚本键")?;
+        let character = arguments
+            .get("character")
+            .map(|value| serde_json::from_value(value.clone()))
+            .transpose()?;
+        return world.query(Query::Script {
+            kind,
+            id,
+            character,
+        });
+    }
+    let id = reference_key(&arguments["id"]).context("查询需要有效 ID")?;
+    let character = arguments
+        .get("character")
+        .map(|value| serde_json::from_value(value.clone()))
+        .transpose()?;
+    world.query(kind.request_for(&id, character)?)
+}
+
+fn reference_key(value: &Value) -> Option<String> {
+    value
         .as_str()
         .map(str::to_owned)
-        .or_else(|| id.as_u64().map(|id| id.to_string()))
-        .context("查询需要有效 ID")?;
-    world.query(kind.request(&id)?)
+        .or_else(|| value.as_u64().map(|id| id.to_string()))
+}
+
+fn optional<T: serde::de::DeserializeOwned>(request: &Value, key: &str) -> Result<Option<T>> {
+    request
+        .get(key)
+        .map(|value| serde_json::from_value(value.clone()))
+        .transpose()
+        .with_context(|| format!("查询参数 {key} 无效"))
+}
+
+fn entity_list(world: &dyn QuerySource, kind: QueryKind, request: &Value) -> Result<Value> {
+    let machine = request["machineid"].as_i64().map(|id| id.to_string());
+    let search = request["search"]
+        .as_str()
+        .or(machine.as_deref())
+        .unwrap_or_default();
+    let character = request
+        .get("character")
+        .or_else(|| request.get("holder"))
+        .map(|value| serde_json::from_value(value.clone()))
+        .transpose()?;
+    let offset = request
+        .get("offset")
+        .map(|value| serde_json::from_value(value.clone()))
+        .transpose()?
+        .unwrap_or(0);
+    let limit = request
+        .get("limit")
+        .map(|value| serde_json::from_value(value.clone()))
+        .transpose()?
+        .unwrap_or(20);
+    world.query(Query::Entities(EntityList {
+        kind,
+        character,
+        search,
+        offset,
+        limit,
+        include_inactive: request["include_invalidated"].as_bool().unwrap_or(false)
+            || request["completed"] == true,
+    }))
+}
+
+fn script_list(world: &dyn QuerySource, kind: QueryKind, arguments: &Value) -> Result<Value> {
+    let offset = arguments
+        .get("offset")
+        .map(|value| serde_json::from_value(value.clone()))
+        .transpose()?
+        .unwrap_or(0);
+    let limit = arguments
+        .get("limit")
+        .map(|value| serde_json::from_value(value.clone()))
+        .transpose()?
+        .unwrap_or(20);
+    world.query(Query::ScriptList {
+        kind,
+        search: arguments["search"].as_str().unwrap_or_default(),
+        group: arguments["group"].as_str(),
+        offset,
+        limit,
+    })
 }

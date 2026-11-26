@@ -34,6 +34,21 @@ pub(crate) struct Pending {
     pub text: String,
 }
 
+#[derive(Default)]
+pub(crate) struct Military {
+    pub units: BTreeMap<u32, Motion>,
+    pub combats: BTreeMap<u32, Value>,
+    pub reports: BTreeMap<u32, Value>,
+    pub sieges: BTreeMap<u32, Value>,
+}
+
+pub(crate) struct Motion {
+    pub moving: bool,
+    pub retreating: bool,
+    pub province: Option<u32>,
+    pub destination: Option<u32>,
+}
+
 pub struct Task {
     game: Arc<LiveWorld>,
     updates: Receiver<Result<Vec<Notice>, String>>,
@@ -54,7 +69,18 @@ impl Task {
                 loop {
                     let progress = match reader.sample(target) {
                         Ok(sample) => {
-                            let notices = history.update(sample);
+                            let character = sample.character;
+                            let generation = sample.generation;
+                            let date = sample.date.clone();
+                            let mut notices = history.update(sample);
+                            if let Ok(military) =
+                                reader.military(character, generation, &history.seen_reports)
+                            {
+                                notices.extend(history.update_military(character, &date, military));
+                            }
+                            if let Ok(messages) = reader.message_sample(character, generation) {
+                                notices.extend(history.update_messages(character, &date, messages));
+                            }
                             let recovered = last_error.take().is_some();
                             let send = !connected || recovered || !notices.is_empty();
                             connected = true;
@@ -111,6 +137,10 @@ struct History {
     previous: BTreeMap<&'static str, Value>,
     wars: BTreeSet<u32>,
     pending: HashSet<PendingKey>,
+    military: Military,
+    seen_reports: BTreeSet<u32>,
+    seen_messages: HashSet<String>,
+    visible_alerts: HashSet<String>,
 }
 
 const FIELDS: [(&str, &str); 13] = [
@@ -130,6 +160,159 @@ const FIELDS: [(&str, &str); 13] = [
 ];
 
 impl History {
+    fn update_messages(&mut self, character: u32, date: &str, items: Vec<Value>) -> Vec<Notice> {
+        let mut notices = Vec::new();
+        let mut alerts = HashSet::new();
+        for item in items {
+            let Some(key) = item["type"].as_str() else {
+                continue;
+            };
+            let id = item["id"].to_string();
+            let (group, kind) = if item["source"] == "native_important_action" {
+                alerts.insert(id.clone());
+                if self.visible_alerts.contains(&id) {
+                    continue;
+                }
+                ("important_actions", format!("action.{key}"))
+            } else {
+                if !self.seen_messages.insert(id) {
+                    continue;
+                }
+                ("messages", format!("message.{key}"))
+            };
+            let label = item["title"]
+                .as_str()
+                .filter(|text| !text.is_empty())
+                .unwrap_or(key);
+            let label: String = label.chars().take(300).collect();
+            notices.push(Notice {
+                group: group.into(),
+                kind,
+                text: format!("{date} · 人物 {character} · {label}"),
+            });
+        }
+        self.visible_alerts = alerts;
+        notices
+    }
+
+    fn update_military(
+        &mut self,
+        character: u32,
+        date: &str,
+        mut current: Military,
+    ) -> Vec<Notice> {
+        let mut notices = Vec::new();
+        let mut push = |kind: &str, date: &str, text: String| {
+            notices.push(Notice {
+                group: "military".into(),
+                kind: format!("military.{kind}"),
+                text: format!("{date} · 人物 {character} · {text}"),
+            })
+        };
+        for (&id, motion) in &current.units {
+            if let Some(before) = self.military.units.get(&id) {
+                let place = json!(motion.province);
+                let destination = json!(motion.destination);
+                let change = if before.retreating != motion.retreating {
+                    Some(if motion.retreating {
+                        ("retreat_started", "开始撤退")
+                    } else {
+                        ("retreat_ended", "撤退结束")
+                    })
+                } else if before.moving != motion.moving {
+                    Some(if motion.moving {
+                        ("movement_started", "开始行军")
+                    } else {
+                        ("movement_stopped", "行军结束")
+                    })
+                } else {
+                    None
+                };
+                if let Some((kind, label)) = change {
+                    let suffix = if motion.moving {
+                        format!("，目标 {destination}")
+                    } else {
+                        String::new()
+                    };
+                    push(
+                        kind,
+                        date,
+                        format!("单位 {id} {label}，省份 {place}{suffix}"),
+                    );
+                }
+            }
+        }
+        for (&id, combat) in &current.combats {
+            let province = &combat["province_id"];
+            let phase = combat["phase"].as_str().unwrap_or("unknown");
+            match self.military.combats.get(&id) {
+                None => push(
+                    "battle_started",
+                    date,
+                    format!("交战 {id} 开始，省份 {province}"),
+                ),
+                Some(before) if before["phase"] != phase => push(
+                    "battle_phase_changed",
+                    date,
+                    format!("交战 {id} 进入 {phase} 阶段"),
+                ),
+                _ => {}
+            }
+        }
+        for (&id, report) in &current.reports {
+            if self.seen_reports.insert(id) {
+                let winner = match report["winning_side"].as_str() {
+                    Some("attacker") => "进攻方获胜",
+                    Some("defender") => "防守方获胜",
+                    _ => "胜负待确认",
+                };
+                push(
+                    "battle_result",
+                    report["end_date"].as_str().unwrap_or(date),
+                    format!("战报 {id}，省份 {}，{winner}", report["province_id"]),
+                );
+            }
+        }
+        for (&id, siege) in &current.sieges {
+            let province = &siege["province_id"];
+            let side = if siege["side"] == "attacker" {
+                "进攻方"
+            } else {
+                "防守方"
+            };
+            match self.military.sieges.get(&id) {
+                None => push(
+                    "siege_started",
+                    date,
+                    format!("围城 {id} 开始，省份 {province}，你方为{side}"),
+                ),
+                Some(before)
+                    if siege["effects"]["breach"].as_u64()
+                        > before["effects"]["breach"].as_u64() =>
+                {
+                    push(
+                        "siege_breach",
+                        date,
+                        format!("围城 {id} 出现城墙缺口，省份 {province}"),
+                    )
+                }
+                _ => {}
+            }
+        }
+        for (&id, previous) in &self.military.sieges {
+            if !current.sieges.contains_key(&id) {
+                push(
+                    "siege_ended",
+                    date,
+                    format!("围城 {id} 已结束，省份 {}", previous["province_id"]),
+                );
+            }
+        }
+        current.reports.clear();
+        self.military = current;
+        notices
+    }
+
     fn update(&mut self, sample: Sample) -> Vec<Notice> {
         let subject = (sample.generation, sample.character);
         let same_world = self.subject == Some(subject);

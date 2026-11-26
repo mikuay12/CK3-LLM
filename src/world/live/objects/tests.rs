@@ -260,3 +260,121 @@ fn native_pending_items_are_scoped_to_the_tracked_character() {
     assert_eq!(result.pending.len(), 1);
     assert_eq!(result.pending[0].kind, "pending_event");
 }
+#[cfg(all(windows, target_arch = "x86_64"))]
+#[test]
+#[ignore = "needs a running isolated CK3 save and CK3_LIVE_TEST_PID"]
+fn evaluates_rules_in_installed_ck3() -> anyhow::Result<()> {
+    use std::time::{Duration, Instant};
+
+    use crate::world::{
+        Navigation, QueryKind, QuerySource,
+        live::{LiveWorld, PlayerContext},
+    };
+
+    let pid = std::env::var("CK3_LIVE_TEST_PID")?.parse()?;
+    let game = LiveWorld::connect(Some(pid))?;
+    let started = Instant::now();
+    let (summary, actor, target) = loop {
+        let loaded = (|| -> anyhow::Result<_> {
+            let summary = game.query(Query::Summary)?;
+            anyhow::ensure!(
+                summary["date_raw"].as_u64().unwrap_or_default() > (5000 + 900) * 8760,
+                "test campaign has not loaded"
+            );
+            let title_holder = |key| {
+                game.query(Query::Title(key)).and_then(|result| {
+                    result["data"]["holder_id"]
+                        .as_u64()
+                        .map(|id| id as u32)
+                        .context("test title is unheld")
+                })
+            };
+            Ok((summary, title_holder("k_england")?, title_holder("c_fife")?))
+        })();
+        match loaded {
+            Ok(ready) => break ready,
+            Err(error) if started.elapsed() > Duration::from_secs(210) || !game.is_running() => {
+                return Err(error);
+            }
+            Err(_) => std::thread::sleep(Duration::from_secs(1)),
+        }
+    };
+    let generation = game.catalogs.lock().unwrap().generation;
+    let player = PlayerContext {
+        character: actor,
+        generation,
+        name: String::new(),
+        tick: summary["tick"].as_u64().unwrap_or(0) as u32,
+        date: summary["date"].as_str().unwrap_or_default().into(),
+    };
+    let catalog = game.interaction_options("gift_interaction")?;
+    let parameters = json!({"interaction":"gift_interaction","recipient":target});
+    let data = crate::commands::build_interaction(
+        parameters.as_object().unwrap(),
+        actor,
+        catalog.target_type.as_deref(),
+        &catalog.options,
+    )?;
+    let acceptance = game.acceptance(&player, &data)?;
+    anyhow::ensure!(
+        acceptance.0.is_finite() && acceptance.1.is_finite(),
+        "invalid acceptance result"
+    );
+    println!("Native gift acceptance: {acceptance:?}");
+    let province = 2214;
+    let supply = game.query(Query::ProvinceSupply {
+        province,
+        character: actor,
+    })?;
+    assert!(
+        supply["data"]["supply_limit"].as_i64().is_some(),
+        "{supply}"
+    );
+    let plan = game.query(Query::Script {
+        kind: QueryKind::Decision,
+        id: "convert_to_local_culture_decision",
+        character: Some(actor),
+    })?;
+    assert_eq!(plan["availability"], "native_shadow_unicorn", "{plan}");
+    assert_eq!(plan["cooldown"]["status"], "native_memory");
+    let edges = game.query(Query::Native(QueryKind::Adjacencies, province))?;
+    let map = game.query(Query::ProvinceMap(province))?;
+    assert_eq!(map["land_passable"], true, "{map}");
+    let neighboring_land = edges["data"]["items"]
+        .as_array()
+        .context("adjacency query did not return rows")?
+        .iter()
+        .filter_map(|edge| {
+            (edge["crossing"] != "impassable")
+                .then(|| edge["province_id"].as_u64())
+                .flatten()
+        })
+        .map(|id| id as u32)
+        .find(|&id| {
+            game.query(Query::ProvinceMap(id))
+                .is_ok_and(|info| info["land_passable"] == true)
+        })
+        .with_context(|| format!("test province has no land neighbor: {}", edges["data"]))?;
+    let route = game.query(Query::Navigation(Navigation::Route {
+        origin: province,
+        target: neighboring_land,
+        speed: None,
+        unit: None,
+        include_straits: true,
+        max_nodes: 1000,
+    }))?;
+    assert_eq!(route["data"]["reachable"], true, "{route}");
+    let quote = game.query(Query::ConstructionQuote {
+        province,
+        building: "cereal_fields_01",
+        character: Some(actor),
+        slot: None,
+        treasury: false,
+    })?;
+    assert!(
+        quote["data"]["cost"]["gold_or_treasury"].as_f64().is_some(),
+        "{quote}"
+    );
+    println!("Native building quote: {}", quote["data"]["cost"]);
+    Ok(())
+}

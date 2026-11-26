@@ -1,6 +1,8 @@
 mod activity;
 mod interaction;
 
+pub(crate) use interaction::{build_interaction, interaction_spec};
+
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 

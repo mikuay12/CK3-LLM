@@ -1,8 +1,13 @@
+mod feedback;
 mod game;
 pub(crate) mod game_protocol;
 pub mod native;
+pub mod replay;
+mod transfer;
 
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -16,6 +21,7 @@ use self::game::Game;
 use self::game_protocol::Compatibility;
 use crate::protocol::{self, Envelope, GAME_DATA_OPCODE};
 use crate::settings::{ConnectionSettings, read_json};
+pub use feedback::{ActionReceipt, ActionRequest, ActionStatus};
 use native::{Event, NakamaSdk, WireFormat};
 
 pub const CK3_BUILD: &str = "1.20.1.2";
@@ -199,6 +205,7 @@ pub enum Update {
         machine: i32,
     },
     ActionSubmitted(String),
+    ActionFeedback(ActionReceipt),
     Traffic(Traffic),
     Notice(String),
     Ended(Result<()>),
@@ -208,6 +215,58 @@ pub struct SessionTask {
     commands: Sender<Input>,
     updates: Receiver<Update>,
     worker: Option<JoinHandle<()>>,
+    active: Arc<AtomicBool>,
+}
+
+#[derive(Clone)]
+pub struct ActionClient {
+    commands: Sender<Input>,
+    active: Arc<AtomicBool>,
+}
+
+impl ActionClient {
+    pub fn is_active(&self) -> bool {
+        self.active.load(Ordering::Acquire)
+    }
+
+    pub fn same_session(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.active, &other.active)
+    }
+
+    pub fn submit(
+        &self,
+        request: ActionRequest,
+        stop: Arc<AtomicBool>,
+    ) -> Result<Receiver<Result<ActionReceipt>>> {
+        let (reply, response) = mpsc::channel();
+        self.commands
+            .send(Input::Command {
+                request,
+                reply: Some(reply),
+                stop: Some(stop),
+            })
+            .context("房间已断开")?;
+        Ok(response)
+    }
+
+    pub fn status(&self, request_id: String) -> Result<Receiver<Result<ActionReceipt>>> {
+        let (reply, response) = mpsc::channel();
+        self.commands
+            .send(Input::ActionStatus { request_id, reply })
+            .context("房间已断开")?;
+        Ok(response)
+    }
+
+    pub(crate) fn replay_interaction(
+        &self,
+        request: ActionRequest,
+    ) -> Result<Receiver<Result<Option<ActionReceipt>>>> {
+        let (reply, response) = mpsc::channel();
+        self.commands
+            .send(Input::ReplayInteraction { request, reply })
+            .context("房间已断开")?;
+        Ok(response)
+    }
 }
 
 enum Input {
@@ -215,9 +274,17 @@ enum Input {
     Select(u32),
     Ready(bool),
     Command {
-        name: String,
-        fields: serde_json::Map<String, serde_json::Value>,
-        attribs: u8,
+        request: ActionRequest,
+        reply: Option<Sender<Result<ActionReceipt>>>,
+        stop: Option<Arc<AtomicBool>>,
+    },
+    ActionStatus {
+        request_id: String,
+        reply: Sender<Result<ActionReceipt>>,
+    },
+    ReplayInteraction {
+        request: ActionRequest,
+        reply: Sender<Result<Option<ActionReceipt>>>,
     },
 }
 
@@ -225,10 +292,13 @@ impl SessionTask {
     pub fn start(options: ConnectionSettings) -> Result<Self> {
         let (commands, control) = mpsc::channel();
         let (messages, updates) = mpsc::channel();
+        let active = Arc::new(AtomicBool::new(true));
+        let worker_active = active.clone();
         let worker = thread::Builder::new()
             .name("nakama-session".into())
             .spawn(move || {
                 let result = run(options, &control, &messages);
+                worker_active.store(false, Ordering::Release);
                 let _ = messages.send(Update::Ended(result));
             })
             .context("启动联机线程")?;
@@ -236,6 +306,7 @@ impl SessionTask {
             commands,
             updates,
             worker: Some(worker),
+            active,
         })
     }
 
@@ -244,6 +315,7 @@ impl SessionTask {
     }
 
     pub fn stop(&self) {
+        self.active.store(false, Ordering::Release);
         let _ = self.commands.send(Input::Stop);
     }
 
@@ -267,11 +339,23 @@ impl SessionTask {
     ) -> Result<()> {
         self.commands
             .send(Input::Command {
-                name,
-                fields,
-                attribs,
+                request: ActionRequest {
+                    request_id: uuid::Uuid::new_v4().to_string(),
+                    name,
+                    fields,
+                    attribs,
+                },
+                reply: None,
+                stop: None,
             })
             .context("房间已断开")
+    }
+
+    pub fn actions(&self) -> ActionClient {
+        ActionClient {
+            commands: self.commands.clone(),
+            active: self.active.clone(),
+        }
     }
 }
 
@@ -351,6 +435,7 @@ fn run(
                                 handshake,
                                 host,
                                 own,
+                                options.transfer,
                             )?);
                             deadline = Instant::now() + PHASE_TIMEOUT;
                         }
@@ -437,20 +522,41 @@ fn run(
                     }
                 }
                 Ok(Input::Command {
-                    name,
-                    fields,
-                    attribs,
-                }) if leaving.is_none() => {
-                    let result = game
-                        .as_mut()
-                        .context("尚未进入游戏会话")
-                        .and_then(|game| game.submit(&client, &name, &fields, attribs));
-                    match result {
-                        Ok(()) => {
-                            updates.send(Update::ActionSubmitted(format!("已提交 {name}")))?
-                        }
-                        Err(error) => updates.send(Update::Notice(format!("{error:#}")))?,
+                    request,
+                    reply,
+                    stop,
+                }) => {
+                    let result = if leaving.is_some()
+                        || stop.is_some_and(|stop| stop.load(Ordering::Acquire))
+                    {
+                        Err(anyhow!("操作已取消"))
+                    } else {
+                        game.as_mut()
+                            .context("尚未进入游戏会话")
+                            .and_then(|game| game.submit(&client, request))
+                    };
+                    if let Ok(receipt) = &result {
+                        updates.send(Update::ActionFeedback(receipt.clone()))?;
                     }
+                    if let Some(reply) = reply {
+                        let _ = reply.send(result);
+                    } else if let Err(error) = result {
+                        updates.send(Update::Notice(format!("{error:#}")))?;
+                    }
+                }
+                Ok(Input::ActionStatus { request_id, reply }) => {
+                    let result = game
+                        .as_ref()
+                        .context("尚未进入游戏会话")
+                        .and_then(|game| game.action_status(&request_id));
+                    let _ = reply.send(result);
+                }
+                Ok(Input::ReplayInteraction { request, reply }) => {
+                    let result = game
+                        .as_ref()
+                        .context("尚未进入游戏会话")
+                        .and_then(|game| game.replay_interaction(&request));
+                    let _ = reply.send(result);
                 }
                 _ => {}
             }
@@ -465,6 +571,11 @@ fn run(
         && let Some(game) = &mut game
     {
         let _ = game.request_disconnect(&client);
+    }
+    if let Some(game) = &mut game {
+        for receipt in game.disconnected() {
+            let _ = updates.send(Update::ActionFeedback(receipt));
+        }
     }
     result
 }
