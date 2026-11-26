@@ -24,6 +24,10 @@ impl HostPage {
         self.task.is_some()
     }
 
+    pub fn pid(&self) -> Option<u32> {
+        self.pid
+    }
+
     pub fn start(&mut self, settings: &HostSettings, game_dir: &str) {
         self.reset_status();
         self.error = None;

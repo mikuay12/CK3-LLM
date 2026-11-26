@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::settings::ModelSettings;
-use crate::world::World;
+use crate::world::{QueryKind, QuerySource};
 
 #[derive(Clone, Copy, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -88,7 +88,7 @@ pub fn chat_in_workspace(
     settings: &ModelSettings,
     key: &str,
     messages: &[Message],
-    world: Option<&World>,
+    world: Option<&dyn QuerySource>,
 ) -> Result<Reply> {
     let mut context = Vec::with_capacity(messages.len() + 1);
     if !settings.instructions.trim().is_empty() {
@@ -106,7 +106,7 @@ fn complete(
     key: &str,
     messages: &[Message],
     max_timeout: Option<Duration>,
-    world: Option<&World>,
+    world: Option<&dyn QuerySource>,
 ) -> Result<Reply> {
     let endpoint = Url::parse(settings.endpoint.trim()).context("模型 API 地址无效")?;
     ensure!(
@@ -145,7 +145,7 @@ fn complete(
             "type": "function",
             "function": {
                 "name": "game_query",
-                "description": "Query the CK3 snapshot opened by the user. Use summary for world metadata or query a character, landed title, or province by ID. A landed title accepts its script key.",
+                "description": "Query the CK3 world source selected by the user. Use summary for live game date, tick and players, or for snapshot metadata. Query a character, landed title, or province by ID. A landed title also accepts its script key. Live results carry their game date and tick.",
                 "parameters": { "type": "object", "properties": {
                     "kind": { "type": "string", "enum": ["summary", "character", "title", "province"] },
                     "id": { "type": ["string", "integer"] }
@@ -175,7 +175,7 @@ fn complete(
                 elapsed: started.elapsed(),
             });
         }
-        let world = world.context("当前对话未启用快照查询")?;
+        let world = world.context("当前对话未启用世界查询")?;
         ensure!(
             round < 6 && message.tool_calls.len() <= 8,
             "模型查询次数达到本轮上限"
@@ -224,16 +224,17 @@ fn request_message(request: reqwest::blocking::RequestBuilder) -> Result<(Assist
     Ok((message, status.as_u16()))
 }
 
-fn query(world: &World, call: &ToolCall) -> Result<Value> {
+fn query(world: &dyn QuerySource, call: &ToolCall) -> Result<Value> {
     ensure!(
         call.kind == "function" && call.function.name == "game_query",
         "不支持的模型工具"
     );
     let arguments: Value =
         serde_json::from_str(&call.function.arguments).context("查询参数无法解析")?;
-    let kind = arguments["kind"].as_str().context("缺少查询类别")?;
-    if kind == "summary" {
-        return world.summary();
+    let kind: QueryKind =
+        serde_json::from_value(arguments["kind"].clone()).context("查询类别无效")?;
+    if kind == QueryKind::Summary {
+        return world.query(kind.request("")?);
     }
     let id = &arguments["id"];
     let id = id
@@ -241,10 +242,5 @@ fn query(world: &World, call: &ToolCall) -> Result<Value> {
         .map(str::to_owned)
         .or_else(|| id.as_u64().map(|id| id.to_string()))
         .context("查询需要有效 ID")?;
-    match kind {
-        "character" => world.character(id.parse().context("人物 ID 需要是整数")?),
-        "province" => world.province(id.parse().context("省份 ID 需要是整数")?),
-        "title" => world.title(&id),
-        _ => anyhow::bail!("未知查询类别"),
-    }
+    world.query(kind.request(&id)?)
 }

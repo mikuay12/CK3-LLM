@@ -4,7 +4,7 @@ use std::thread;
 
 use ck3_llm::model::{self, Message, Reply, Role};
 use ck3_llm::settings::{ModelSettings, read_json};
-use ck3_llm::world::World;
+use ck3_llm::world::QuerySource;
 use eframe::egui::{Button, DragValue, RichText, ScrollArea, TextEdit, Ui};
 
 use super::{memory::MemoryPage, style};
@@ -147,7 +147,8 @@ impl ModelPage {
         ui: &mut Ui,
         settings: &ModelSettings,
         memory: &MemoryPage,
-        world: Option<&Arc<World>>,
+        world: Option<Arc<dyn QuerySource>>,
+        source_name: &'static str,
     ) {
         style::card(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
@@ -197,7 +198,7 @@ impl ModelPage {
             );
             ui.horizontal_wrapped(|ui| {
                 ui.add_enabled_ui(world.is_some() && !self.busy(), |ui| {
-                    ui.checkbox(&mut self.use_world, "允许模型查询已打开的快照");
+                    ui.checkbox(&mut self.use_world, format!("允许模型查询{source_name}"));
                 });
                 if ui
                     .add_enabled(
@@ -211,12 +212,12 @@ impl ModelPage {
                         content: self.draft.trim().to_owned(),
                     });
                     self.draft.clear();
-                    self.submit_chat(settings, memory, world);
+                    self.submit_chat(settings, memory, world.as_ref());
                 }
                 if self.chat_error.is_some()
                     && ui.add_enabled(!self.busy(), Button::new("重试")).clicked()
                 {
-                    self.submit_chat(settings, memory, world);
+                    self.submit_chat(settings, memory, world.as_ref());
                 }
                 if self
                     .pending
@@ -237,7 +238,7 @@ impl ModelPage {
         &mut self,
         settings: &ModelSettings,
         memory: &MemoryPage,
-        world: Option<&Arc<World>>,
+        world: Option<&Arc<dyn QuerySource>>,
     ) {
         let mut settings = settings.clone();
         let recalled = memory.prompt();
@@ -255,7 +256,7 @@ impl ModelPage {
         &mut self,
         operation: Operation,
         settings: &ModelSettings,
-        world: Option<Arc<World>>,
+        world: Option<Arc<dyn QuerySource>>,
     ) {
         match operation {
             Operation::Test => self.settings_feedback = None,

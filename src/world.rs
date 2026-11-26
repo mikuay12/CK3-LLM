@@ -1,4 +1,5 @@
 pub(crate) mod binary;
+pub mod live;
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -7,6 +8,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result, bail, ensure};
+use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use zip::ZipArchive;
@@ -14,6 +16,42 @@ use zip::ZipArchive;
 use binary::{Index, Span, decode, index};
 
 const MAX_WORLD_BYTES: u64 = 1 << 30;
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum QueryKind {
+    #[default]
+    Summary,
+    Character,
+    Title,
+    Province,
+}
+
+impl QueryKind {
+    pub fn request(self, id: &str) -> Result<Query<'_>> {
+        Ok(match self {
+            Self::Summary => Query::Summary,
+            Self::Character => Query::Character(id.parse().context("人物 ID 需要是整数")?),
+            Self::Title => {
+                ensure!(!id.is_empty(), "请输入头衔 ID 或脚本键");
+                Query::Title(id)
+            }
+            Self::Province => Query::Province(id.parse().context("省份 ID 需要是整数")?),
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Query<'a> {
+    Summary,
+    Character(u32),
+    Title(&'a str),
+    Province(u32),
+}
+
+pub trait QuerySource: Send + Sync {
+    fn query(&self, request: Query<'_>) -> Result<Value>;
+}
 
 pub struct World {
     bytes: Vec<u8>,
@@ -158,6 +196,17 @@ impl World {
         let group = Arc::new(index(&self.bytes, span.clone(), true)?);
         cache.insert(span, Arc::clone(&group));
         Ok(group)
+    }
+}
+
+impl QuerySource for World {
+    fn query(&self, request: Query<'_>) -> Result<Value> {
+        match request {
+            Query::Summary => self.summary(),
+            Query::Character(id) => self.character(id),
+            Query::Title(id) => self.title(id),
+            Query::Province(id) => self.province(id),
+        }
     }
 }
 

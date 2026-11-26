@@ -30,7 +30,7 @@ impl Page {
         match self {
             Self::Host => "本地房主",
             Self::Connection => "房间连接",
-            Self::World => "世界快照",
+            Self::World => "世界查询",
             Self::Notifications => "通知",
             Self::Model => "模型设置",
             Self::Chat => "模型对话",
@@ -160,6 +160,8 @@ impl eframe::App for Desktop {
         self.world.poll();
         if self.host.busy() || self.connection.busy() || self.model.busy() || self.world.busy() {
             context.request_repaint_after(Duration::from_millis(60));
+        } else if self.world.has_live_game() {
+            context.request_repaint_after(Duration::from_secs(1));
         }
         self.navigation(context);
 
@@ -208,7 +210,7 @@ impl eframe::App for Desktop {
                                     self.page = Page::World;
                                 }
                             }
-                            Page::World => self.world.show(ui),
+                            Page::World => self.world.show(ui, self.host.pid()),
                             Page::Notifications => self.notifications.show(ui),
                             Page::Model => self.model.show_settings(ui, &mut self.settings.model),
                             Page::Chat => self.model.show_chat(
@@ -216,6 +218,7 @@ impl eframe::App for Desktop {
                                 &self.settings.model,
                                 &self.memory,
                                 self.world.active(),
+                                self.world.source_name(),
                             ),
                             Page::Memory => self.memory.show(ui),
                         }
