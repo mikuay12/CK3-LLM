@@ -119,7 +119,17 @@ fn template(spec: &Specification, machine: i32) -> String {
             let value = if field.name == "machineid" {
                 json!(machine)
             } else {
-                field.default.clone().unwrap_or(Value::Null)
+                match field.kind.as_str() {
+                    "character_interaction" => json!({
+                        "character_interaction": "", "actor": null, "recipient": null,
+                        "scope": {"root": {}, "seed": -1}, "original_scope": {"root": {}, "seed": -1}
+                    }),
+                    "activity_plan" => json!({
+                        "type": "", "host": null, "start_date": null,
+                        "phases": [{"phase": "", "province": null}], "invitations": []
+                    }),
+                    _ => field.default.clone().unwrap_or(Value::Null),
+                }
             };
             (field.name.clone(), value)
         })

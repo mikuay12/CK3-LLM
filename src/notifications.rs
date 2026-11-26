@@ -1,11 +1,11 @@
 use std::collections::{BTreeSet, VecDeque};
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::settings::{Settings, read_json, write_json};
 
@@ -73,6 +73,27 @@ impl Notice {
     }
 }
 
+pub fn history_path() -> Result<PathBuf> {
+    Ok(Settings::path()?.with_file_name("game_notifications.jsonl"))
+}
+
+pub fn append_history(path: &Path, notices: &[Notice]) -> Result<()> {
+    if notices.is_empty() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(path.parent().context("通知记录目录无效")?)?;
+    let mut file = File::options().create(true).append(true).open(path)?;
+    for notice in notices {
+        let mut bytes = serde_json::to_vec(&json!({
+            "event": "game_notification", "group": notice.group,
+            "notification_id": notice.kind, "text": notice.text,
+        }))?;
+        bytes.push(b'\n');
+        file.write_all(&bytes)?;
+    }
+    Ok(())
+}
+
 pub fn load_history(path: &Path) -> Result<VecDeque<Notice>> {
     let file = File::open(path).with_context(|| format!("打开通知记录 {}", path.display()))?;
     let mut history = VecDeque::new();
@@ -105,3 +126,4 @@ pub fn load_history(path: &Path) -> Result<VecDeque<Notice>> {
     }
     Ok(history)
 }
+pub mod watch;

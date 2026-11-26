@@ -460,6 +460,97 @@
     "hex": "c23101000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300ec06010014002a0000004731010014002a000000e40601000c001900000004000400"
   },
   {
+    "name": "join_activity_command",
+    "fields": {
+      "activity": 77,
+      "character": 42
+    },
+    "hex": "df3701000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e00000004004100010003001628010014004d000000ec06010014002a00000004000400"
+  },
+  {
+    "name": "join_activity_command",
+    "fields": {
+      "activity": 123,
+      "character": 42,
+      "travel": "no",
+      "check_start_date": false,
+      "travel_plan_draft_created": {
+        "owner": 42,
+        "travel_leader": 55,
+        "activity": 123,
+        "task_contract": 55,
+        "companions": [
+          {
+            "character": 55,
+            "date": 54296040,
+            "location": 12,
+            "source": "travel_option",
+            "travel_option": "mountain_guide"
+          }
+        ],
+        "options": [
+          "mountain_guide"
+        ],
+        "departure_date": 54296040,
+        "departure_location": 12,
+        "destinations": [
+          45
+        ],
+        "path_duration": 18,
+        "max_path_duration": 22,
+        "travel_with_domicile": true,
+        "migration": true,
+        "can_cancel_planning": false,
+        "waypoints": [
+          [
+            14,
+            45
+          ],
+          [],
+          [
+            60
+          ]
+        ],
+        "modifier": [
+          {
+            "modifier": "travel_safety_modifier",
+            "expiration_date": 54300000,
+            "multiplier": 1.5
+          },
+          {
+            "modifier": "travel_speed_modifier",
+            "expiration_date": 54301000
+          }
+        ],
+        "on_arrival": {
+          "event": "travel.0001",
+          "on_action": "on_travel_arrival"
+        },
+        "on_start": {
+          "on_action": "on_travel_start"
+        },
+        "on_travel_planner_cancel": {
+          "event": "travel.0002"
+        },
+        "on_arrival_destinations": "last",
+        "scope": {
+          "root": {
+            "type": "char",
+            "identity": 42
+          },
+          "seed": 12,
+          "event_targets": {
+            "destination": {
+              "type": "prov",
+              "identity": 45
+            }
+          }
+        }
+      }
+    },
+    "hex": "df3701000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e00000004004100010003001628010014007b000000ec06010014002a000000273601000f04143601000e0000bc37010003001228010014002a000000873701001400370000008937010003000300ec060100140037000000b50601000c00e87d3c03f62701000c000c000000bd310100d237d23701000f000e006d6f756e7461696e5f6775696465040004001628010014007b0000009e3901001400370000004136010003000f000e006d6f756e7461696e5f67756964650400c03701000c00e87d3c03bf3701000c000c000000ac37010003000c002d0000000400813901000c0012000000823901000c00160000008f3b01000e0001663c01000e0001493b01000e0000c737010003002f0001000c00030000000c0000000000010003000c000e0000000c002d00000004000c0002000000010003000c003c00000004000400a92701000300a92701000f00160074726176656c5f7361666574795f6d6f646966696572272801000c00608d3c03d40c01006701f0490200000000000400a92701000300a92701000f00150074726176656c5f73706565645f6d6f646966696572272801000c0048913c030400a73701000300b80101000f000b0074726176656c2e303030311a2801000f0011006f6e5f74726176656c5f6172726976616c0400bc04010003001a2801000f000f006f6e5f74726176656c5f73746172740400143a01000300b80101000f000b0074726176656c2e3030303204000b3a0100912c230501000300ac0601000300e1000100a62edb0001009c022a000000000000000400f70601000c000c000000f806010003000f000b0064657374696e6174696f6e01000300e1000100ff04db0001009c022d00000000000000040004000400040004000400"
+  },
+  {
     "name": "join_faction",
     "fields": {
       "faction": 42,
@@ -643,6 +734,1163 @@
     "hex": "d42701000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300f00001000c0019000000cf0601000c001900000004000400"
   },
   {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "declare_war_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "secondary_actor": {
+              "type": "char",
+              "identity": 4294967295
+            },
+            "secondary_recipient": {
+              "type": "char",
+              "identity": 4294967295
+            },
+            "intermediary": {
+              "type": "char",
+              "identity": 4294967295
+            },
+            "puppet_or_actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            },
+            "hook": {
+              "type": "boolean",
+              "identity": 1
+            },
+            "target": {
+              "type": "boolean",
+              "identity": 1
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "options": [
+          true
+        ],
+        "target": {
+          "type": "boolean",
+          "identity": 1
+        },
+        "declare_war_interaction": {
+          "casus_belli": "county_conquest_cb",
+          "titles": [
+            2997,
+            2998
+          ],
+          "claimant": 42,
+          "uses_hook": true,
+          "has_hook": true
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 1.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f0017006465636c6172655f7761725f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f000f007365636f6e646172795f6163746f7201000300e1000100a62edb0001009c02ffffffff0000000004000f0013007365636f6e646172795f726563697069656e7401000300e1000100a62edb0001009c02ffffffff0000000004000f000c00696e7465726d65646961727901000300e1000100a62edb0001009c02ffffffff0000000004000f000f007075707065745f6f725f6163746f7201000300e1000100a62edb0001009c022a0000000000000004000f00100069735f7075707065745f616374696f6e01000300e1000100000504000f000400686f6f6b01000300e10001000005db0001009c02010000000000000004000f00060074617267657401000300e10001000005db0001009c020100000000000000040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000004136010003000c00010000000c000000000001000e000104006b0001000300e10001000005db0001009c0201000000000000000400ea2c010003009a2801000f001200636f756e74795f636f6e71756573745f6362d527010003001400b50b00001400b60b00000400af2d010014002a000000f63c01000e0001f73c01000e0001040004004237010067018096980000000000a42801006701a08601000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "arrange_marriage_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "secondary_actor": 77,
+        "secondary_recipient": 88,
+        "intermediary": 4294967295,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "secondary_actor": {
+              "type": "char",
+              "identity": 77
+            },
+            "secondary_recipient": {
+              "type": "char",
+              "identity": 88
+            },
+            "intermediary": {
+              "type": "char",
+              "identity": 4294967295
+            },
+            "puppet_or_actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "options": [],
+        "arrange_marriage_interaction": {}
+      },
+      "ai_accept": 25.0,
+      "ai_intermediary_accept": 100.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001c00617272616e67655f6d617272696167655f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f000f007365636f6e646172795f6163746f7201000300e1000100a62edb0001009c024d0000000000000004000f0013007365636f6e646172795f726563697069656e7401000300e1000100a62edb0001009c02580000000000000004000f000c00696e7465726d65646961727901000300e1000100a62edb0001009c02ffffffff0000000004000f000f007075707065745f6f725f6163746f7201000300e1000100a62edb0001009c022a0000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000dc2b010014004d000000dd2b0100140058000000073f010014002a000000e42b01000300040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "gift_artifact_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            },
+            "target": {
+              "type": "artifact",
+              "identity": 300
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "target": {
+          "type": "artifact",
+          "identity": 300
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001900676966745f61727469666163745f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e1000100000504000f00060074617267657401000300e10001009435db0001009c022c01000000000000040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000006b0001000300e10001009435db0001009c022c01000000000000040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "diarch_legal_meddling_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            },
+            "target": {
+              "type": "lt",
+              "identity": 301
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "target": {
+          "type": "lt",
+          "identity": 301
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f0021006469617263685f6c6567616c5f6d6564646c696e675f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e1000100000504000f00060074617267657401000300e1000100a72edb0001009c022d01000000000000040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000006b0001000300e1000100a72edb0001009c022d01000000000000040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "send_poem_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "options": [
+          true,
+          false
+        ]
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f00150073656e645f706f656d5f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000004136010003000c00020000000c000000000001000e0001040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "ransom_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "secondary_recipient": 120,
+        "options": [
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f00120072616e736f6d5f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000dd2b0100140078000000073f010014002a0000004136010003000c00090000000c000200000001000e0001040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "release_from_prison_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "options": [
+          true,
+          false,
+          true
+        ]
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001f0072656c656173655f66726f6d5f707269736f6e5f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000004136010003000c00030000000c000000000001000e00010c000200000001000e0001040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "execute_prisoner_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "options": [
+          true,
+          false
+        ]
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001c00657865637574655f707269736f6e65725f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000004136010003000c00020000000c000000000001000e0001040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "grant_vassal_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "secondary_actor": 77
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f0018006772616e745f76617373616c5f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000dc2b010014004d000000073f010014002a00000004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "retract_vassal_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "secondary_recipient": 88,
+        "options": [
+          true
+        ]
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001a00726574726163745f76617373616c5f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000dd2b0100140058000000073f010014002a0000004136010003000c00010000000c000000000001000e0001040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "feudalize_holding_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            },
+            "target": {
+              "type": "lt",
+              "identity": 508
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "target": {
+          "type": "lt",
+          "identity": 508
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001d0066657564616c697a655f686f6c64696e675f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e1000100000504000f00060074617267657401000300e1000100a72edb0001009c02fc01000000000000040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000006b0001000300e1000100a72edb0001009c02fc01000000000000040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "end_war_attacker_victory_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "end_war_attacker_victory_interaction": {}
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f002400656e645f7761725f61747461636b65725f766963746f72795f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a000000432b01000300040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "end_war_attacker_white_peace_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "end_war_white_peace_interaction": {}
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f002800656e645f7761725f61747461636b65725f77686974655f70656163655f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a000000442b01000300040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "end_war_attacker_defeat_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "end_war_attacker_defeat_interaction": {}
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f002300656e645f7761725f61747461636b65725f6465666561745f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a000000452b01000300040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "force_vote_in_succession_election_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "force_vote_in_succession_election": {}
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f002d00666f7263655f766f74655f696e5f73756363657373696f6e5f656c656374696f6e5f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000009c3201000300040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "grant_titles_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            },
+            "target": {
+              "type": "lt",
+              "identity": 401
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "target": {
+          "type": "lt",
+          "identity": 401
+        },
+        "grant_titles_interaction": {
+          "titles": [
+            401,
+            402
+          ],
+          "government": "feudal_government"
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f0018006772616e745f7469746c65735f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e1000100000504000f00060074617267657401000300e1000100a72edb0001009c029101000000000000040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000006b0001000300e1000100a72edb0001009c0291010000000000000400762c01000300d527010003001400910100001400920100000400f72e01000f00110066657564616c5f676f7665726e6d656e74040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "grant_governorship_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            },
+            "target": {
+              "type": "lt",
+              "identity": 403
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "target": {
+          "type": "lt",
+          "identity": 403
+        },
+        "grant_governorship_interaction": {
+          "titles": [
+            403
+          ]
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001e006772616e745f676f7665726e6f72736869705f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e1000100000504000f00060074617267657401000300e1000100a72edb0001009c029301000000000000040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000006b0001000300e1000100a72edb0001009c0293010000000000000400553901000300d527010003001400930100000400040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "revoke_title_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            },
+            "target": {
+              "type": "lt",
+              "identity": 405
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "target": {
+          "type": "lt",
+          "identity": 405
+        },
+        "revoke_title_interaction": {
+          "title": 405
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f0018007265766f6b655f7469746c655f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e1000100000504000f00060074617267657401000300e1000100a72edb0001009c029501000000000000040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000006b0001000300e1000100a72edb0001009c0295010000000000000400722e01000300ce060100140095010000040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "diarch_revoke_title_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            },
+            "target": {
+              "type": "lt",
+              "identity": 406
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "target": {
+          "type": "lt",
+          "identity": 406
+        },
+        "diarch_revoke_title": {
+          "title": 406
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001f006469617263685f7265766f6b655f7469746c655f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e1000100000504000f00060074617267657401000300e1000100a72edb0001009c029601000000000000040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000006b0001000300e1000100a72edb0001009c0296010000000000000400353701000300ce060100140096010000040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "create_claimant_faction_against_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "create_claimant_faction_against_interaction": {
+          "title": 407
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f002b006372656174655f636c61696d616e745f66616374696f6e5f616761696e73745f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000006d2f01000300ce060100140097010000040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "invite_to_council_position_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "invite_to_council_interaction": {
+          "active_council_task": 55
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f002600696e766974655f746f5f636f756e63696c5f706f736974696f6e5f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000005e31010003002b2e0100140037000000040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "force_onto_council",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "force_onto_council_interaction": {
+          "active_council_task": 56
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001200666f7263655f6f6e746f5f636f756e63696c230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a000000ba32010003002b2e0100140038000000040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "grant_court_position",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "grant_court_position": {
+          "court_position": "court_physician_court_position"
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f0014006772616e745f636f7572745f706f736974696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a000000dd3c01000300883601000f001e00636f7572745f70687973696369616e5f636f7572745f706f736974696f6e040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "request_court_position",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "request_court_position": {
+          "court_position": "antiquarian_court_position"
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f001600726571756573745f636f7572745f706f736974696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a000000db3c01000300883601000f001a00616e74697175617269616e5f636f7572745f706f736974696f6e040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "liege_modify_vassal_contract_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "liege_modify_vassal_contract": {
+          "types": [
+            "feudal_government_taxes",
+            "feudal_government_levies"
+          ],
+          "level": [
+            2,
+            1
+          ]
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f0028006c696567655f6d6f646966795f76617373616c5f636f6e74726163745f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a000000913b010003007b03010003000f00170066657564616c5f676f7665726e6d656e745f74617865730f00180066657564616c5f676f7665726e6d656e745f6c657669657304005307010003001400020000001400010000000400040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "vassal_modify_vassal_contract_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "vassal_modify_vassal_contract": {
+          "types": [
+            "special_contract"
+          ],
+          "level": [
+            1
+          ]
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f00290076617373616c5f6d6f646966795f76617373616c5f636f6e74726163745f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a000000903b010003007b03010003000f0010007370656369616c5f636f6e747261637404005307010003001400010000000400040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
+    "name": "send_character_interaction",
+    "fields": {
+      "character_interaction": {
+        "character_interaction": "request_culture_conversion_interaction",
+        "actor": 42,
+        "recipient": 99,
+        "puppet_or_actor": 42,
+        "scope": {
+          "root": {},
+          "seed": -1,
+          "event_targets": {
+            "actor": {
+              "type": "char",
+              "identity": 42
+            },
+            "recipient": {
+              "type": "char",
+              "identity": 99
+            },
+            "is_puppet_action": {
+              "type": "boolean"
+            }
+          }
+        },
+        "original_scope": {
+          "root": {},
+          "seed": -1
+        },
+        "request_culture_conversion_interaction": {
+          "traits": {
+            "traditions": [
+              "tradition_only_the_strong"
+            ],
+            "ethos": "ethos_bellicose",
+            "language": "language_norse"
+          }
+        }
+      },
+      "ai_intermediary_accept": 100.0,
+      "ai_accept": 25.0
+    },
+    "hex": "b32801000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300a92801000300a92801000f002600726571756573745f63756c747572655f636f6e76657273696f6e5f696e746572616374696f6e230501000300ac06010003000400f70601000c00fffffffff806010003000f0005006163746f7201000300e1000100a62edb0001009c022a0000000000000004000f000900726563697069656e7401000300e1000100a62edb0001009c02630000000000000004000f00100069735f7075707065745f616374696f6e01000300e10001000005040004000400e12f01000300ac06010003000400f70601000c00ffffffff0400aa28010014002a000000ab280100140063000000073f010014002a0000003b35010003004806010003002e35010003000f001900747261646974696f6e5f6f6e6c795f7468655f7374726f6e6704002d3501000f000f006574686f735f62656c6c69636f7365bb0001000f000e006c616e67756167655f6e6f7273650400040004004237010067018096980000000000a42801006701a02526000000000004000400"
+  },
+  {
     "name": "set_activity_intent_command",
     "fields": {
       "character": 42,
@@ -761,6 +2009,146 @@
       "army": 42
     },
     "hex": "0b2c01000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e00000004004100010003000a3401006501aa28010014002a0000006a29010014002a00000004000400"
+  },
+  {
+    "name": "start_activity_command",
+    "fields": {
+      "data": {
+        "type": "activity_feast",
+        "host": 42,
+        "intent": {
+          "type": "recreation_intent",
+          "target": 99
+        },
+        "start_date": 54296760,
+        "guest_delay_days": 14,
+        "invite_duration": 30,
+        "options": {
+          "feast_course": "feast_course_lavish"
+        },
+        "phases": [
+          {
+            "phase": "feast_phase_meal",
+            "province": 12,
+            "guest_subsets": [
+              {
+                "key": "main_guests",
+                "guests": [
+                  55,
+                  99
+                ]
+              }
+            ]
+          }
+        ],
+        "special_guests": {
+          "honorary_guest": 99
+        },
+        "invitations": [
+          [
+            55,
+            99
+          ],
+          []
+        ],
+        "variables": {
+          "feast_var": {
+            "type": "boolean",
+            "identity": 1
+          }
+        },
+        "tenets": [
+          "tenet_carnal_exaltation",
+          ""
+        ],
+        "doctrines": [
+          "doctrine_monogamy"
+        ],
+        "travel_plan": {
+          "owner": 42,
+          "travel_leader": 55,
+          "activity": 123,
+          "task_contract": 55,
+          "companions": [
+            {
+              "character": 55,
+              "date": 54296040,
+              "location": 12,
+              "source": "travel_option",
+              "travel_option": "mountain_guide"
+            }
+          ],
+          "options": [
+            "mountain_guide"
+          ],
+          "departure_date": 54296040,
+          "departure_location": 12,
+          "destinations": [
+            45
+          ],
+          "path_duration": 18,
+          "max_path_duration": 22,
+          "travel_with_domicile": true,
+          "migration": true,
+          "can_cancel_planning": false,
+          "waypoints": [
+            [
+              14,
+              45
+            ],
+            [],
+            [
+              60
+            ]
+          ],
+          "modifier": [
+            {
+              "modifier": "travel_safety_modifier",
+              "expiration_date": 54300000,
+              "multiplier": 1.5
+            },
+            {
+              "modifier": "travel_speed_modifier",
+              "expiration_date": 54301000
+            }
+          ],
+          "on_arrival": {
+            "event": "travel.0001",
+            "on_action": "on_travel_arrival"
+          },
+          "on_start": {
+            "on_action": "on_travel_start"
+          },
+          "on_travel_planner_cancel": {
+            "event": "travel.0002"
+          },
+          "on_arrival_destinations": "last",
+          "scope": {
+            "root": {
+              "type": "char",
+              "identity": 42
+            },
+            "seed": 12,
+            "event_targets": {
+              "destination": {
+                "type": "prov",
+                "identity": 45
+              }
+            }
+          }
+        }
+      }
+    },
+    "hex": "2c3601000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300f00001000300e10001000f000e0061637469766974795f6665617374272c010014002a0000002d3601000300e10001000f00110072656372656174696f6e5f696e74656e746b0001001400630000000400d50c01000c00b8803c037d3901000c000e0000007e3901000c001e0000004136010003000f000c0066656173745f636f7572736501000f00130066656173745f636f757273655f6c617669736804004236010003000300712901000f00100066656173745f70686173655f6d65616cd22701000c000c0000001938010003000300dc0001000f000b006d61696e5f677565737473073301000300140037000000140063000000040004000400040004001336010003000f000e00686f6e6f726172795f677565737401001400630000000400522e010003002f0001000c00020000000c00000000000100030014003700000014006300000004000400b637010003001228010014002a000000873701001400370000008937010003000300ec060100140037000000b50601000c00e87d3c03f62701000c000c000000bd310100d237d23701000f000e006d6f756e7461696e5f6775696465040004001628010014007b0000009e3901001400370000004136010003000f000e006d6f756e7461696e5f67756964650400c03701000c00e87d3c03bf3701000c000c000000ac37010003000c002d0000000400813901000c0012000000823901000c00160000008f3b01000e0001663c01000e0001493b01000e0000c737010003002f0001000c00030000000c0000000000010003000c000e0000000c002d00000004000c0002000000010003000c003c00000004000400a92701000300a92701000f00160074726176656c5f7361666574795f6d6f646966696572272801000c00608d3c03d40c01006701f0490200000000000400a92701000300a92701000f00150074726176656c5f73706565645f6d6f646966696572272801000c0048913c030400a73701000300b80101000f000b0074726176656c2e303030311a2801000f0011006f6e5f74726176656c5f6172726976616c0400bc04010003001a2801000f000f006f6e5f74726176656c5f73746172740400143a01000300b80101000f000b0074726176656c2e3030303204000b3a0100912c230501000300ac0601000300e1000100a62edb0001009c022a000000000000000400f70601000c000c000000f806010003000f000b0064657374696e6174696f6e01000300e1000100ff04db0001009c022d0000000000000004000400040004005505010003000f00090066656173745f76617201000300e10001000005db0001009c02010000000000000004000400633a010003000f00170074656e65745f6361726e616c5f6578616c746174696f6e0f00000004004e3e010003000f001100646f637472696e655f6d6f6e6f67616d790400040004000400"
+  },
+  {
+    "name": "start_activity_command",
+    "fields": {
+      "data": {
+        "start_date": 54296760
+      }
+    },
+    "hex": "2c3601000300f30101000300db000100140017000000400201000c0002000000c60001000c00000000009c06010014000e0000000400410001000300f000010003002d36010003000400d50c01000c00b8803c037d3901000c00000000007e3901000c0000000000522e010003002f0001000c00000000000400040004000400"
   },
   {
     "name": "start_assault",

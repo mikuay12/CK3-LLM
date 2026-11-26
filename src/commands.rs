@@ -1,3 +1,6 @@
+mod activity;
+mod interaction;
+
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
@@ -114,6 +117,9 @@ fn value_bytes(kind: &str, value: &Value) -> Result<Vec<u8>> {
         "blob" => blob(value),
         "u32_list" | "i32_list" | "string_list" | "u8_list" => array(kind, value),
         "activity_intent" => intent(value),
+        "activity_plan" => activity::encode(value),
+        "travel_plan" => activity::travel_plan(value),
+        "character_interaction" => interaction::encode(value),
         "rally_points" => rally_points(value),
         "scope_value" => scope(value),
         "boolean_event_target_parameters" => decision_parameters(value),
@@ -275,6 +281,40 @@ fn fields<'a>(value: &'a Value, keys: &[&str]) -> Result<&'a Map<String, Value>>
         "对象包含未知字段"
     );
     Ok(fields)
+}
+
+fn required<'a>(fields: &'a Map<String, Value>, field: &str) -> Result<&'a Value> {
+    fields
+        .get(field)
+        .with_context(|| format!("缺少字段 {field}"))
+}
+
+fn nonempty<'a>(value: &'a Value, field: &str) -> Result<&'a str> {
+    value
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .with_context(|| format!("{field} 需要非空字符串"))
+}
+
+fn bounded(bytes: &[u8]) -> Result<()> {
+    ensure!(bytes.len() <= LIMIT, "游戏命令超过一帧大小");
+    Ok(())
+}
+
+fn named_entries(
+    values: &Value,
+    mut encode: impl FnMut(&Value) -> Result<Vec<u8>>,
+) -> Result<Vec<u8>> {
+    let values = values.as_object().context("需要包含具名条目的对象")?;
+    let mut output = Vec::new();
+    for (name, value) in values {
+        ensure!(!name.is_empty(), "条目名称需要非空字符串");
+        output.extend(text(name)?);
+        push_word(&mut output, 1);
+        output.extend(encode(value)?);
+        bounded(&output)?;
+    }
+    Ok(output)
 }
 
 fn typed(token: u16, value: &[u8]) -> Vec<u8> {

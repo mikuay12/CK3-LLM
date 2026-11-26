@@ -28,7 +28,7 @@ pub struct ModelPage {
     pending: Option<Request>,
     settings_feedback: Option<(bool, String)>,
     chat_error: Option<String>,
-    use_world: bool,
+    allowed_world: Option<&'static str>,
 }
 
 impl ModelPage {
@@ -197,9 +197,16 @@ impl ModelPage {
                     .hint_text("输入消息"),
             );
             ui.horizontal_wrapped(|ui| {
+                let mut use_world = self.allowed_world == Some(source_name);
                 ui.add_enabled_ui(world.is_some() && !self.busy(), |ui| {
-                    ui.checkbox(&mut self.use_world, format!("允许模型查询{source_name}"));
+                    if ui
+                        .checkbox(&mut use_world, format!("允许模型查询{source_name}"))
+                        .changed()
+                    {
+                        self.allowed_world = use_world.then_some(source_name);
+                    }
                 });
+                let world = world.as_ref().filter(|_| use_world);
                 if ui
                     .add_enabled(
                         !self.busy() && !self.draft.trim().is_empty(),
@@ -212,12 +219,12 @@ impl ModelPage {
                         content: self.draft.trim().to_owned(),
                     });
                     self.draft.clear();
-                    self.submit_chat(settings, memory, world.as_ref());
+                    self.submit_chat(settings, memory, world);
                 }
                 if self.chat_error.is_some()
                     && ui.add_enabled(!self.busy(), Button::new("重试")).clicked()
                 {
-                    self.submit_chat(settings, memory, world.as_ref());
+                    self.submit_chat(settings, memory, world);
                 }
                 if self
                     .pending
@@ -248,8 +255,7 @@ impl ModelPage {
                 .push_str("\n\n以下是已启用的用户记忆。\n");
             settings.instructions.push_str(&recalled);
         }
-        let world = if self.use_world { world.cloned() } else { None };
-        self.submit(Operation::Chat, &settings, world);
+        self.submit(Operation::Chat, &settings, world.cloned());
     }
 
     fn submit(

@@ -58,6 +58,11 @@ impl ConnectionPage {
         self.task.is_some() || self.probe.is_some()
     }
 
+    pub fn machine(&self) -> Option<u32> {
+        self.game_machine
+            .and_then(|machine| u32::try_from(machine).ok())
+    }
+
     pub fn poll(&mut self, notifications: &mut NotificationsPage) {
         if let Some(probe) = &self.probe {
             let result = match probe.try_recv() {

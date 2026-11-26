@@ -9,6 +9,8 @@ use crate::world::Query;
 
 #[cfg(test)]
 mod tests;
+#[cfg(all(windows, target_arch = "x86_64"))]
+mod watch;
 
 // CK3 1.20.1.2 x64 layouts, verified against the executable hash before use.
 const WORLD: u64 = 0x5c7dbe8;
@@ -19,7 +21,7 @@ const PROVINCE_MANAGER_VTABLE: u64 = 0x4787058;
 const PROVINCE_VTABLE: u64 = 0x4742e90;
 const COUNTY_DATA_VTABLE: u64 = 0x4746bc0;
 
-pub(super) const REQUIRED_IMAGE_BYTES: u64 = 0x5d33310 + 8;
+pub(super) const REQUIRED_IMAGE_BYTES: u64 = 0x5d33c78 + 8;
 pub(super) const MAX_READ_BYTES: usize = 1024 * 1024;
 const MAX_SLOTS: u32 = 0x0100_0000;
 const SLOT_BYTES: u64 = 16;
@@ -158,19 +160,7 @@ impl<'a> ReadView<'a> {
     }
 
     fn vector<const WIDTH: usize>(&mut self, address: u64) -> Result<Vec<[u8; WIDTH]>> {
-        let data = self.pointer(address)?;
-        let capacity = self.u32(address + 8)?;
-        let count = self.u32(address + 12)?;
-        ensure!(
-            count <= capacity && count as u64 * WIDTH as u64 <= MAX_READ_BYTES as u64,
-            "CK3 对象列表长度无效"
-        );
-        if count == 0 {
-            return Ok(Vec::new());
-        }
-        let mut bytes = vec![0; count as usize * WIDTH];
-        self.memory.read(data, &mut bytes)?;
-        Ok(bytes.as_chunks::<WIDTH>().0.to_vec())
+        read_vector(self.memory, self.array(address)?)
     }
 
     fn ids(&mut self, address: u64) -> Result<Vec<u32>> {
@@ -194,6 +184,27 @@ impl<'a> ReadView<'a> {
             .map(|bytes| self.key(decode_pointer(bytes)?))
             .collect()
     }
+}
+
+fn read_vector<const WIDTH: usize>(
+    memory: &dyn Memory,
+    header: [u8; 16],
+) -> Result<Vec<[u8; WIDTH]>> {
+    let data = decode_pointer(array(&header[..8]))?;
+    let capacity = u32::from_le_bytes(array(&header[8..12]));
+    let count = u32::from_le_bytes(array(&header[12..]));
+    ensure!(
+        count <= capacity
+            && count as u64 * WIDTH as u64 <= MAX_READ_BYTES as u64
+            && (count == 0 || data != 0),
+        "CK3 对象列表长度无效"
+    );
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+    let mut bytes = vec![0; count as usize * WIDTH];
+    memory.read(data, &mut bytes)?;
+    Ok(bytes.as_chunks::<WIDTH>().0.to_vec())
 }
 
 fn array<const N: usize>(bytes: &[u8]) -> [u8; N] {
@@ -361,12 +372,26 @@ struct BaronyIndex {
 #[derive(Default)]
 pub(super) struct Catalogs {
     last_clock: Option<Clock>,
+    generation: u64,
     titles: Option<TitleIndex>,
     baronies: Option<BaronyIndex>,
 }
 
 impl Catalogs {
     pub fn query(&mut self, memory: &dyn Memory, base: u64, request: Query<'_>) -> Result<Value> {
+        let (clock, data) = self.read(memory, base, |view| view.execute(request))?;
+        Ok(json!({
+            "source": "live", "date": date_text(clock.date),
+            "date_raw": clock.date, "tick": clock.tick, "data": data,
+        }))
+    }
+
+    fn read<T>(
+        &mut self,
+        memory: &dyn Memory,
+        base: u64,
+        mut read: impl FnMut(&mut WorldView<'_>) -> Result<T>,
+    ) -> Result<(Clock, T)> {
         let mut last_error = None;
         for _ in 0..3 {
             let before = Clock::read(memory, base)?;
@@ -376,10 +401,11 @@ impl Catalogs {
             {
                 self.titles = None;
                 self.baronies = None;
+                self.generation += 1;
             }
             self.last_clock = Some(before);
             let mut view = WorldView::new(ReadView::new(memory), base, before, self);
-            let result = view.execute(request).and_then(|data| {
+            let result = read(&mut view).and_then(|data| {
                 view.validate_references()?;
                 Ok(data)
             });
@@ -389,12 +415,7 @@ impl Catalogs {
                 continue;
             }
             match result {
-                Ok(data) => {
-                    return Ok(json!({
-                        "source": "live", "date": date_text(before.date),
-                        "date_raw": before.date, "tick": before.tick, "data": data,
-                    }));
-                }
+                Ok(data) => return Ok((before, data)),
                 Err(error) => last_error = Some(error),
             }
         }
@@ -778,6 +799,34 @@ impl<'a> WorldView<'a> {
             }
         }
         let mut keys = HashMap::new();
+        self.visit_objects(TITLE, |read, id, object| {
+            let definition = read.pointer(object + 0x48)?;
+            if let Some(key) = read.key(definition)? {
+                keys.insert(key, id);
+            }
+            Ok(())
+        })?;
+        ensure!(
+            Table::read(self.read.memory, self.base, TITLE)? == table
+                && table.revision(self.read.memory)? == revision
+                && Clock::read(self.read.memory, self.base)?.follows(self.clock),
+            "CK3 头衔索引在读取期间变化"
+        );
+        let id = keys.get(key).copied();
+        self.catalogs.titles = Some(TitleIndex {
+            table,
+            revision,
+            keys,
+        });
+        id.with_context(|| format!("找不到头衔 {key}"))
+    }
+
+    fn visit_objects(
+        &mut self,
+        layout: Layout,
+        mut visit: impl FnMut(&mut ReadView<'_>, u32, u64) -> Result<()>,
+    ) -> Result<()> {
+        let table = self.table(layout)?;
         const CHUNK: u32 = 1024;
         let mut bytes = vec![0; CHUNK as usize * SLOT_BYTES as usize];
         for start in (0..table.length).step_by(CHUNK as usize) {
@@ -797,33 +846,20 @@ impl<'a> WorldView<'a> {
                     continue;
                 }
                 ensure!(
-                    self.read.pointer(object)? == self.base + TITLE.vtable,
-                    "CK3 头衔对象类型无效"
+                    self.read.pointer(object)? == self.base + layout.vtable,
+                    "CK3 {}对象类型无效",
+                    layout.object
                 );
-                let id = self.read.u32(object + TITLE.id_offset)?;
+                let id = self.read.u32(object + layout.id_offset)?;
                 ensure!(
                     id & 0x00ff_ffff == start + index as u32,
-                    "CK3 头衔对象编号无效"
+                    "CK3 {}对象编号无效",
+                    layout.object
                 );
-                let definition = self.read.pointer(object + 0x48)?;
-                if let Some(key) = self.read.key(definition)? {
-                    keys.insert(key, id);
-                }
+                visit(&mut self.read, id, object)?;
             }
         }
-        ensure!(
-            Table::read(self.read.memory, self.base, TITLE)? == table
-                && table.revision(self.read.memory)? == revision
-                && Clock::read(self.read.memory, self.base)?.follows(self.clock),
-            "CK3 头衔索引在读取期间变化"
-        );
-        let id = keys.get(key).copied();
-        self.catalogs.titles = Some(TitleIndex {
-            table,
-            revision,
-            keys,
-        });
-        id.with_context(|| format!("找不到头衔 {key}"))
+        Ok(())
     }
 
     fn title_overview(&mut self, id: u32) -> Result<TitleOverview> {

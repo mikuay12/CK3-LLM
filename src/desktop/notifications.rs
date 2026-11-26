@@ -1,8 +1,14 @@
 use std::collections::{BTreeSet, VecDeque};
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::mpsc::TryRecvError;
 
-use ck3_llm::notifications::{HISTORY_LIMIT, Notice, Policy, load_history};
-use eframe::egui::{RichText, Ui};
+use ck3_llm::notifications::watch::{Target, Task};
+use ck3_llm::notifications::{
+    HISTORY_LIMIT, Notice, Policy, append_history, history_path, load_history,
+};
+use ck3_llm::world::live::LiveWorld;
+use eframe::egui::{RichText, TextEdit, Ui};
 
 use super::style;
 
@@ -12,6 +18,9 @@ pub struct NotificationsPage {
     policy: Policy,
     feedback: Option<(bool, String)>,
     show_hidden: bool,
+    character: String,
+    watch: Option<Task>,
+    watch_error: Option<String>,
 }
 
 impl NotificationsPage {
@@ -22,6 +31,9 @@ impl NotificationsPage {
             policy: Policy::default(),
             feedback: None,
             show_hidden: false,
+            character: String::new(),
+            watch: None,
+            watch_error: None,
         };
         match Policy::path() {
             Ok(path) if path.exists() => match Policy::load(&path) {
@@ -29,6 +41,13 @@ impl NotificationsPage {
                 Err(error) => page.feedback = Some((false, format!("{error:#}"))),
             },
             Err(error) => page.feedback = Some((false, format!("{error:#}"))),
+            _ => {}
+        }
+        match history_path() {
+            Ok(path) if path.is_file() => match load_history(&path) {
+                Ok(notices) => page.notices = notices,
+                Err(error) => page.feedback = Some((false, format!("{error:#}"))),
+            },
             _ => {}
         }
         page
@@ -41,8 +60,81 @@ impl NotificationsPage {
         }
     }
 
-    pub fn show(&mut self, ui: &mut Ui) {
+    pub fn poll(&mut self, game: Option<&Arc<LiveWorld>>) {
+        while let Some(task) = &self.watch {
+            if !game.is_some_and(|game| task.attached_to(game)) {
+                self.watch = None;
+                self.watch_error = Some("实时 CK3 连接已断开".into());
+                break;
+            }
+            match task.try_recv() {
+                Ok(Ok(notices)) => {
+                    self.watch_error = None;
+                    if let Err(error) =
+                        history_path().and_then(|path| append_history(&path, &notices))
+                    {
+                        self.feedback = Some((false, format!("写入通知记录失败 · {error:#}")));
+                    }
+                    self.notices.extend(notices);
+                    self.notices
+                        .drain(..self.notices.len().saturating_sub(HISTORY_LIMIT));
+                }
+                Ok(Err(error)) => self.watch_error = Some(error),
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => {
+                    self.watch = None;
+                    self.watch_error = Some("实时通知已停止".into());
+                }
+            }
+        }
+    }
+
+    pub fn show(&mut self, ui: &mut Ui, game: Option<&Arc<LiveWorld>>, machine: Option<u32>) {
         style::card(ui, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.add_enabled(
+                    self.watch.is_none(),
+                    TextEdit::singleline(&mut self.character)
+                        .desired_width(150.0)
+                        .hint_text("角色 ID（可选）"),
+                );
+                if self.watch.is_some() {
+                    if ui.button("停止跟踪").clicked() {
+                        self.watch = None;
+                        self.watch_error = None;
+                    }
+                } else if ui
+                    .add_enabled(game.is_some(), style::primary("跟踪游戏通知"))
+                    .clicked()
+                    && let Some(game) = game
+                {
+                    let target = if self.character.trim().is_empty() {
+                        Ok(machine.map_or(Target::LocalPlayer, Target::Machine))
+                    } else {
+                        self.character
+                            .trim()
+                            .parse()
+                            .map(Target::Character)
+                            .map_err(|_| anyhow::anyhow!("角色 ID 需要是整数"))
+                    };
+                    self.watch_error = None;
+                    match target.and_then(|target| Task::start(game.clone(), target)) {
+                        Ok(task) => self.watch = Some(task),
+                        Err(error) => self.watch_error = Some(format!("{error:#}")),
+                    }
+                }
+                if game.is_none() {
+                    ui.label(
+                        RichText::new("在世界查询页连接 CK3 后可跟踪通知").color(style::MUTED),
+                    );
+                } else if self.watch.is_some() && self.watch_error.is_none() {
+                    ui.label(RichText::new("正在跟踪").color(style::GREEN));
+                }
+            });
+            if let Some(error) = &self.watch_error {
+                ui.label(RichText::new(error).color(style::ERROR));
+            }
+            ui.separator();
             ui.horizontal_wrapped(|ui| {
                 if ui.button("打开旧版通知记录").clicked()
                     && let Some(path) = rfd::FileDialog::new()

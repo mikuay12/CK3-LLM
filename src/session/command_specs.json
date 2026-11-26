@@ -1430,6 +1430,54 @@
       }
     ]
   },
+  "join_activity_command": {
+    "token": 14303,
+    "fields": [
+      {
+        "name": "activity",
+        "token": 10262,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "character",
+        "token": 1772,
+        "kind": "u32",
+        "default": 4294967295,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "travel",
+        "token": 13863,
+        "kind": "token_value",
+        "default": "yes",
+        "optional": false,
+        "choices": {
+          "yes": 1038,
+          "no": 1039
+        }
+      },
+      {
+        "name": "check_start_date",
+        "token": 13844,
+        "kind": "bool",
+        "default": true,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "travel_plan_draft_created",
+        "token": 14268,
+        "kind": "travel_plan",
+        "default": null,
+        "optional": true,
+        "choices": {}
+      }
+    ]
+  },
   "join_faction": {
     "token": 12126,
     "fields": [
@@ -2016,6 +2064,35 @@
       }
     ]
   },
+  "send_character_interaction": {
+    "token": 10419,
+    "fields": [
+      {
+        "name": "character_interaction",
+        "token": 10409,
+        "kind": "character_interaction",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "ai_intermediary_accept",
+        "token": 14146,
+        "kind": "fixed",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      },
+      {
+        "name": "ai_accept",
+        "token": 10404,
+        "kind": "fixed",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
   "set_activity_intent_command": {
     "token": 14339,
     "fields": [
@@ -2356,6 +2433,19 @@
         "name": "army",
         "token": 10602,
         "kind": "u32",
+        "default": null,
+        "optional": false,
+        "choices": {}
+      }
+    ]
+  },
+  "start_activity_command": {
+    "token": 13868,
+    "fields": [
+      {
+        "name": "data",
+        "token": 240,
+        "kind": "activity_plan",
         "default": null,
         "optional": false,
         "choices": {}

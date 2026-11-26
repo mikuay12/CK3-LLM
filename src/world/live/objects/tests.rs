@@ -195,3 +195,68 @@ fn live_query_retries_on_tick_change_and_rejects_recycled_reference() {
     );
     assert!(memory.reference_replaced.get());
 }
+
+#[cfg(all(windows, target_arch = "x86_64"))]
+#[test]
+fn native_pending_items_are_scoped_to_the_tracked_character() {
+    use super::watch::{ACTIVITY, INTERACTION};
+    use crate::notifications::watch::Target;
+
+    let mut memory = Fixture::campaign();
+    let queue = DATA + 0x34480 + 0x1f18;
+    memory.ptr(queue, 0x20000);
+    memory.u32(queue + 8, 2);
+    memory.u32(queue + 12, 2);
+    memory.ptr(0x20000, 0x21000);
+    memory.ptr(0x20008, 0x22000);
+    memory.ptr(0x21000 + 0x1b0, 0x23000);
+    memory.u32(0x21000 + 0x1b8, CHARACTER_ID);
+    memory.u32(0x21000 + 0x1bc, 101);
+    memory.u32(0x22000 + 0x1b8, 100);
+    memory.u32(0x22000 + 0x1bc, 102);
+    memory.inline(0x23000 + 0x10, "test.1");
+
+    let interaction = 0x26000;
+    memory.object(INTERACTION, 1, 0x24000, 0x25000, interaction);
+    memory.ptr(interaction + 0x18, 0x27000);
+    memory.inline(0x27000 + 0x18, "test_request");
+    memory.u32(0x27000 + 0x38, 0x4744624f);
+    memory.u32(interaction + 0x2f0, 12);
+    memory.u32(interaction + 0x2f4, 100);
+    memory.u32(interaction + 0x300, CHARACTER_ID);
+    memory.u32(interaction + 0x5c0, 1);
+
+    let activity = 0x2a000;
+    memory.object(ACTIVITY, 1, 0x28000, 0x29000, activity);
+    memory.ptr(activity + 0x3a0, 0x2b000);
+    memory.inline(0x2b000 + 0x18, "activity_feast");
+    memory.u32(0x2b000 + 0x38, 0x4744624f);
+    memory.ptr(ALIVE + 0x550, 0x2c000);
+    memory.u32(ALIVE + 0x558, 1);
+    memory.u32(ALIVE + 0x55c, 1);
+    memory.u32(0x2c000, 1);
+
+    let mut reader = Catalogs::default();
+    let result = reader.sample(&memory, BASE, Target::LocalPlayer).unwrap();
+    assert_eq!(result.character, CHARACTER_ID);
+    let pending: Vec<_> = result
+        .pending
+        .iter()
+        .map(|item| (item.kind, item.id, item.stage))
+        .collect();
+    assert_eq!(
+        pending,
+        [
+            ("pending_event", 101, 0),
+            ("pending_interaction", 1, 1),
+            ("activity_invitation", 1, 0)
+        ]
+    );
+    memory.u32(interaction + 0x5c0, 2);
+    memory.u32(ALIVE + 0x55c, 0);
+    let result = reader
+        .sample(&memory, BASE, Target::Character(CHARACTER_ID))
+        .unwrap();
+    assert_eq!(result.pending.len(), 1);
+    assert_eq!(result.pending[0].kind, "pending_event");
+}

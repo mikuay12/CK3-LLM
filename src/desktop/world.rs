@@ -79,6 +79,10 @@ impl WorldPage {
         self.live.is_some()
     }
 
+    pub fn live(&self) -> Option<&Arc<LiveWorld>> {
+        self.live.as_ref()
+    }
+
     pub fn open(&mut self, file: PathBuf) {
         if self.busy() {
             self.error = Some("世界快照正在读取".into());
