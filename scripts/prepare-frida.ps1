@@ -18,6 +18,10 @@ if (!(Test-Path -LiteralPath (Join-Path $destination 'frida-core.lib'))) {
 foreach ($required in @('frida-core.h','frida-core.lib')) {
     if (!(Test-Path -LiteralPath (Join-Path $destination $required) -PathType Leaf)) { throw "Frida devkit missing $required" }
 }
-$license = Invoke-RestMethod -Uri "https://api.github.com/repos/frida/frida-core/contents/COPYING?ref=$version" -TimeoutSec 20
-[System.IO.File]::WriteAllBytes((Join-Path $destination 'COPYING'), [Convert]::FromBase64String($license.content))
+$license = Join-Path $destination 'COPYING'
+$licenseExpected = '5ea1544b51a28bc823b03159190d4108f9fb4f4ef912389f5137c6d295e175b2'
+if (!(Test-Path -LiteralPath $license -PathType Leaf) -or (Get-FileHash -LiteralPath $license).Hash -ne $licenseExpected) {
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/frida/frida-core/$version/COPYING" -OutFile $license -TimeoutSec 45
+}
+if ((Get-FileHash -LiteralPath $license).Hash -ne $licenseExpected) { throw 'Frida license checksum mismatch' }
 $destination
